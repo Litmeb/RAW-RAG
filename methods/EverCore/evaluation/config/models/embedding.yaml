@@ -1,0 +1,10 @@
+# Mem0 local SDK embedding configuration.
+# Used by methods/EverCore/evaluation/config/systems/mem0_local.yaml.
+
+mem0:
+  provider: "openai"
+  config:
+    model: "${VECTORIZE_MODEL:text-embedding-3-small}"
+    api_key: "${VECTORIZE_API_KEY}"
+    openai_base_url: "${VECTORIZE_BASE_URL:https://api.openai.com/v1}"
+    embedding_dims: "${VECTORIZE_DIMS:1536}"

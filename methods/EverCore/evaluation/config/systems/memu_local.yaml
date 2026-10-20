@@ -1,0 +1,83 @@
+# Local memU v1.5.1 system configuration.
+# Run this system with the dedicated Python 3.13 environment: memu-py313.
+
+name: "memu_local"
+version: "1.0"
+description: "memU v1.5.1 local Python SDK"
+adapter: "memu_local"
+
+num_workers: 5
+batch_size: 128
+post_add_wait_seconds: 0
+
+add_resume:
+  enabled: true
+  state_file: "memu_local_add_resume.json"
+
+dataset_overrides:
+  memoryagentbench:
+    batch_size: 128
+    search:
+      top_k: 10
+
+memu:
+  llm:
+    provider: "${MEMU_LLM_PROVIDER:openai}"
+    client_backend: "${MEMU_LLM_CLIENT_BACKEND:sdk}"
+    chat_model: "${LLM_MODEL:gpt-4o-mini}"
+    embed_model: "${EMBEDDING_MODEL:text-embedding-3-small}"
+    embed_batch_size: 128
+    api_key: "${LLM_API_KEY}"
+    base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+  memorize:
+    messages_per_resource: 1
+    memory_types: ["profile", "event", "knowledge", "behavior"]
+    # Item-only retrieval does not consume category summaries. Avoid category
+    # summary LLM merge calls after every Add chunk.
+    update_category_summaries: false
+  retrieve:
+    method: "rag"
+    route_intention: true
+    sufficiency_check: true
+    category:
+      # Category summaries grow with the corpus and memU re-embeds the full
+      # summary during retrieval. Large MemoryAgentBench runs can exceed the
+      # embedding endpoint's per-input token limit, so retrieve items directly.
+      enabled: false
+      top_k: 5
+    item:
+      enabled: true
+      top_k: 20
+    resource:
+      enabled: false
+  # Add resume requires persistence across process restarts. PostgreSQL with
+  # pgvector is recommended for the current memu-py 1.5.1 Windows setup.
+  database:
+    provider: "${MEMU_DATABASE_PROVIDER:postgres}"
+    dsn: "${MEMU_DATABASE_DSN:postgresql+psycopg://memu:memu@127.0.0.1:5433/memu}"
+    vector_index:
+      provider: "pgvector"
+      dsn: "${MEMU_DATABASE_DSN:postgresql+psycopg://memu:memu@127.0.0.1:5433/memu}"
+
+llm:
+  provider: "openai"
+  model: "${LLM_MODEL:gpt-4o-mini}"
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+  temperature: 0
+  max_tokens: 16384
+
+search:
+  top_k: 20
+  # This also bounds concurrent retrieve workflows. Keep it conservative on
+  # 16 GB Windows hosts; all queries reuse one source-scoped GPU item index.
+  embedding_batch_size: 8
+  # Native Windows uses the exact PyTorch CUDA backend. faiss_gpu uses the
+  # same bounded loader/cache on Linux hosts with a GPU Faiss build installed.
+  item_similarity_backend: "torch_gpu"
+  gpu_device: 0
+  gpu_index_fetch_size: 512
+  gpu_similarity: false
+
+answer:
+  max_retries: 3

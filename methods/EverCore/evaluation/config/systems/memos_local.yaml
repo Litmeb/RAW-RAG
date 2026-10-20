@@ -1,0 +1,63 @@
+# Memos Local Docker System Configuration
+
+name: "memos_local"
+version: "1.0"
+description: "MemOS via local Docker product API"
+
+adapter: "memos"
+
+# Local MemOS API configuration.
+# Official open-source Docker exposes /product/add and /product/search.
+# Override MEMOS_LOCAL_URL if your Docker deployment exposes a different host/port.
+api_flavor: "product"
+api_url: "${MEMOS_LOCAL_URL:http://localhost:8000}"
+api_key: "${MEMOS_LOCAL_KEY:}"
+require_api_key: false
+add_async_mode: "sync"
+add_mode: "fine"
+
+batch_size: 10
+max_retries: 5
+
+# Keep the same request pacing as the cloud Memos configuration by default.
+request_interval: 0.1
+
+# Concurrency configuration
+num_workers: 10
+
+# Dataset-specific overrides
+dataset_overrides:
+  longmemeval:
+    batch_size: 6
+  memoryagentbench:
+    batch_size: 2
+    search:
+      top_k: 20
+  meme:
+    answer:
+      prompt_key: "answer_prompt_meme_official"
+  meme_filler128k:
+    answer:
+      prompt_key: "answer_prompt_meme_official"
+  meme_nofiller:
+    answer:
+      prompt_key: "answer_prompt_meme_official"
+
+post_add_wait_seconds: 180
+
+# LLM configuration (for answer generation)
+llm:
+  provider: "openai"
+  model: "${LLM_MODEL:gpt-4o-mini}"
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+  temperature: 0
+  max_tokens: 16384
+
+# Search configuration
+search:
+  top_k: 20
+
+# Answer configuration
+answer:
+  max_retries: 3

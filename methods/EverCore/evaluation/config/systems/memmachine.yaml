@@ -1,0 +1,76 @@
+# MemMachine REST API v2 System Configuration
+name: "memmachine"
+version: "1.0"
+description: "MemMachine via local REST API v2"
+
+adapter: "memmachine"
+
+# Accepts either http://localhost:8080 or http://localhost:8080/api/v2.
+base_url: "http://localhost:8080/api/v2"
+
+# MemMachine session isolation. Final project_id is:
+#   Other datasets:
+#     <project_prefix>__<run_name>__<conversation_id>
+#   MemoryAgentBench:
+#     <project_prefix>__<run_name>__mab__<split>__<source>__<conversation_id>
+org_id: "ragforlocomo"
+project_prefix: "eval"
+
+# Ingest configuration
+memory_types: ["episodic", "semantic"]
+batch_size: 10
+max_retries: 3
+timeout_seconds: 180
+request_interval: 0.0
+num_workers: 10
+
+# speed_sequence_cli waits after every Add until all semantic-ingestion rows
+# created for that Add have been processed inside the Docker PostgreSQL service.
+speed_sequence_async_wait:
+  docker_container: "memmachine-postgres"
+  database: "memmachine"
+  user: "memmachine"
+  poll_interval_seconds: 1.0
+  timeout_seconds: 3600
+
+# Persist each successful request batch so an interrupted Add can use the same
+# run name and continue without re-posting completed messages.
+add_resume:
+  enabled: true
+  state_file: "memmachine_add_resume.json"
+
+# MemMachine may process semantic memory asynchronously.
+post_add_wait_seconds: 1800
+
+search:
+  top_k: 20
+  num_workers: 10
+  expand_context: 0
+  agent_mode: false
+  score_threshold:
+
+llm:
+  provider: "openai"
+  model: "${LLM_MODEL:gpt-4o-mini}"
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+  temperature: 0
+  max_tokens: 16000
+
+answer:
+  max_retries: 3
+
+dataset_overrides:
+  memoryagentbench:
+    batch_size: 2
+    search:
+      top_k: 20
+  meme:
+    answer:
+      prompt_key: "answer_prompt_meme_official"
+  meme_filler128k:
+    answer:
+      prompt_key: "answer_prompt_meme_official"
+  meme_nofiller:
+    answer:
+      prompt_key: "answer_prompt_meme_official"

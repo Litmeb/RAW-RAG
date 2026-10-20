@@ -1,0 +1,30 @@
+# PersonaMem-v2 Dataset Configuration
+
+name: "personamem_v2"
+version: "v2"
+description: "PersonaMem-v2 benchmark with implicit personas"
+
+# Memory language setting (overrides MEMORY_LANGUAGE env var)
+memory_language: "en"
+
+# Data configuration
+data:
+  path: "personamem_v2"
+  format: "personamem_v2"
+
+  # The converter will download and use:
+  # - benchmark/text/benchmark.csv
+  # - data/chat_history_32k/*.json
+  # The converted Locomo-style file is auto-generated.
+
+# Evaluation configuration
+evaluation:
+  type: "exact_match"
+
+  # Exact match settings
+  case_sensitive: false
+  normalize_whitespace: true
+  extract_choice: true
+
+  # PersonaMem-v2 uses 9 conversational scenarios.
+  filter_category: []

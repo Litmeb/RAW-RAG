@@ -1,0 +1,35 @@
+# EverCore System Configuration
+
+name: "evermemos"
+version: "1.0"
+description: "EverCore"
+
+adapter: "evermemos"
+
+add:
+  # MEME/LoCoMo can issue many parallel boundary-detection requests.
+  # Keep this conservative for OpenRouter-compatible endpoints.
+  max_concurrent_requests: 20
+  atomic_fact_max_concurrency: 20
+  max_retries: 3
+  # Enable incremental user-profile maintenance. The profile extractor can
+  # add, update, and delete profile items as new evidence is processed.
+  enable_profile_extraction: true
+
+# LLM configuration
+llm:
+  provider: "openai"
+  model: "${LLM_MODEL:gpt-4o-mini-2024-07-18}"
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+  max_tokens: 16384
+
+search:
+  mode: "agentic"  # agentic | lightweight
+  # Number of retrieved MemCells passed into answer context.
+  response_top_k: 10
+  # When mode="lightweight", the search method defaults to "bm25_only".
+  # Uncomment and set the following to override:
+  # lightweight_search_mode: "hybrid"   # BM25 + Embedding + RRF fusion
+  # lightweight_search_mode: "emb_only" # Only Embedding search
+

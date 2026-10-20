@@ -1,0 +1,29 @@
+# MEME Dataset Configuration (default filler32k condition)
+
+name: "meme"
+version: "1.0"
+description: "MEME benchmark with official filler32k condition"
+
+memory_language: "en"
+
+data:
+  path: "meme"
+  format: "meme"
+
+  # Converter will download/use:
+  # - meme/meme_filler32k.json
+  # - meme/meme_filler32k_locomo_style.json
+  max_content_length: 16000
+
+evaluation:
+  type: "meme_judge"
+
+  llm:
+    provider: "openai"
+    model: "${MEME_EVALUATE_MODEL:gpt-4o-mini-2024-07-18}"
+    api_key: "${LLM_API_KEY}"
+    base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+
+  num_runs: 1
+  max_concurrency: 10
+  filter_category: []

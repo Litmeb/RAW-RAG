@@ -1,0 +1,67 @@
+# EMem-G runner configuration
+
+name: "emem_g"
+version: "1.0"
+description: "EMem-G runner integration with PPR retrieval"
+
+runner: "emem"
+emem_root: "${EMEM_ROOT:}"
+support_json_schema: false
+save_frequency: 0
+
+llm:
+  provider: "openai"
+  model: "${EMEM_LLM_MODEL:gpt-4o-mini}"
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+  temperature: 0
+  max_tokens: 8192
+
+answer:
+  num_workers: 32
+
+embedding:
+  provider: "openai"
+  model: "${VECTORIZE_MODEL:text-embedding-3-small}"
+  api_key: "${VECTORIZE_API_KEY:}"
+  base_url: "${VECTORIZE_BASE_URL:https://api.openai.com/v1}"
+  batch_size: 256
+
+emem:
+  seed: 42
+  force_openie_from_scratch: false
+  force_index_from_scratch: false
+  save_openie: true
+  openie_mode: "edu_based_contextual_ee_online"
+  embedding_return_as_normalized: true
+  synonymy_edge_sim_threshold: 0.9
+  linking_top_k: 30
+  qa_top_k: 10
+  skip_edu_context_gen: true
+  skip_retrieval_ppr: false
+
+dataset_overrides:
+  memoryagentbench:
+    emem:
+      qa_top_k: 20
+  meme:
+    emem:
+      qa_top_k: 20
+    answer:
+      prompt_key: "answer_prompt_meme_official"
+  meme_filler128k:
+    emem:
+      qa_top_k: 20
+    answer:
+      prompt_key: "answer_prompt_meme_official"
+  meme_nofiller:
+    emem:
+      qa_top_k: 20
+    answer:
+      prompt_key: "answer_prompt_meme_official"
+  longmemeval:
+    emem:
+      date_format_type: "longmemeval"
+  locomo:
+    emem:
+      date_format_type: "locomo"

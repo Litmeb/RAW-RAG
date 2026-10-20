@@ -1,0 +1,48 @@
+name: simplemem
+version: '1.0'
+adapter: simplemem
+description: 'SimpleMem text memory with shared LoCoMo answer and judge'
+num_workers: 2
+post_add_wait_seconds: 0
+
+simplemem:
+  root: external/SimpleMem
+  revision: db80b6a7c591e0ea730a058e9f5fc4eb06572299
+  window_size: 40
+  overlap_size: 2
+  timeout_seconds: 120
+  embedding:
+    # Uses the same API embedding configuration as existing baselines.
+    # This differs from upstream's default local Qwen3 embedding model.
+    model: '${VECTORIZE_MODEL:text-embedding-3-small}'
+    api_key: '${VECTORIZE_API_KEY}'
+    base_url: '${VECTORIZE_BASE_URL:https://api.openai.com/v1}'
+  retrieval:
+    semantic_top_k: 25
+    keyword_top_k: 5
+    structured_top_k: 5
+    enable_planning: true
+    enable_reflection: true
+    max_reflection_rounds: 2
+    enable_parallel_retrieval: true
+    max_retrieval_workers: 3
+
+llm:
+  provider: openai
+  model: '${LLM_MODEL:gpt-4o-mini}'
+  api_key: '${LLM_API_KEY}'
+  base_url: '${LLM_BASE_URL:https://openrouter.ai/api/v1}'
+  temperature: 0
+  max_tokens: 16384
+
+search:
+  # Preserve upstream merge order, cap evidence for the shared reader.
+  top_k: 20
+  num_workers: 4
+  timeout_seconds: 600
+  max_retries: 2
+
+answer:
+  prompt_key: answer_prompt_cot
+  max_retries: 3
+  max_context_tokens: 100000

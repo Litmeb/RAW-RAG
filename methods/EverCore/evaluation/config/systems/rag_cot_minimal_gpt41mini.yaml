@@ -1,0 +1,22 @@
+name: "RAG (minimal answer, GPT-4.1-mini)"
+version: "1.0"
+description: "Answer-only rerun reusing fixed LoCoMo retrieval results"
+adapter: "rag"
+
+llm:
+  provider: "openai"
+  model: "gpt-4.1-mini"
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+  temperature: 0
+  max_tokens: 16384
+
+answer:
+  prompt_key: "answer_prompt_cot_minimal"
+  num_workers: 50
+  max_retries: 3
+
+evaluation:
+  llm:
+    model: "gpt-4o-mini-2024-07-18"
+  num_runs: 3

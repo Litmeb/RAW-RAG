@@ -1,0 +1,103 @@
+# Mem0 Local SDK System Configuration
+
+name: "mem0_local"
+version: "1.0"
+description: "Mem0 via local Python SDK"
+
+adapter: "mem0"
+client_mode: "local"
+
+batch_size: 5
+max_retries: 3
+max_content_length: 8000
+add_interval: 0.0
+# A provider can deterministically hang on one large extraction prompt. After
+# normal retries are exhausted, split only that batch recursively; checkpoint
+# the original batch only after every sub-batch succeeds.
+add_timeout_split_on_timeout: true
+# Do not repeat an identical multi-message request after it times out; split it
+# immediately. Single-message leaves still use the normal max_retries=3.
+add_timeout_split_max_attempts: 1
+
+add_resume:
+  enabled: true
+  state_file: "mem0_local_add_resume.json"
+  # Persist every N successful chunks and force a final flush per context.
+  flush_every_batches: 20
+  # Continue a contiguous partial checkpoint in place. The adapter validates
+  # that the matching conversation shard exists before skipping completed work.
+  resume_partial: true
+
+# Persist one lossless record for every local Memory.add attempt, including
+# input messages, both LLM requests/responses, existing-memory searches,
+# proposed ADD/UPDATE/DELETE/NONE actions, returned mutations, and the exact
+# history.db rows committed by the call. Each line is flushed and fsynced so an
+# interrupted long run retains every completed/failed attempt.
+add_audit:
+  enabled: true
+  file: "mem0_add_audit.jsonl"
+  fsync_each_record: true
+
+# Each conversation can issue multiple extraction/update LLM calls. Keep the
+# aggregate pressure below the point where the compatible gateway timed out.
+num_workers: 5
+
+local:
+  # Mem0 telemetry contacts PostHog and can repeatedly time out on restricted
+  # networks. Keep local benchmark runs offline by default.
+  telemetry_enabled: false
+  # QdrantLocal cannot safely serve concurrent writers from one client. Give
+  # each conversation its own Qdrant and SQLite files so contexts can run in
+  # parallel while preserving sequential writes inside each context.
+  shard_by_conversation: true
+  # Mem0's synchronous OpenAI-compatible clients otherwise inherit a long
+  # default timeout. Keep this below search.timeout_seconds so worker threads
+  # return before the outer Search-stage retry boundary.
+  http_timeout_seconds: 60
+  http_max_retries: 0
+  model_config_files:
+    llm: "config/models/llm.yaml"
+    embedding: "config/models/embedding.yaml"
+    reranker: "config/models/reranker.yaml"
+  memory:
+    version: "v1.1"
+    vector_store:
+      provider: "qdrant"
+      config:
+        collection_name: "mem0_local"
+        on_disk: true
+
+dataset_overrides:
+  memoryagentbench:
+    batch_size: 2
+    search:
+      top_k: 20
+
+post_add_wait_seconds: 0
+
+# LLM configuration for final answer generation. Mem0's extraction LLM is loaded
+# from config/models/llm.yaml above.
+llm:
+  provider: "openai"
+  model: "${LLM_MODEL:gpt-4o-mini}"
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+  temperature: 0
+  max_tokens: 16384
+
+search:
+  top_k: 20
+  search_interval: 0.0
+  mem0_rerank: false
+  timeout_seconds: 180
+  max_retries: 2
+  # Retry at the Search stage only; nested SDK retries multiply worst-case wait.
+  sdk_operation_max_attempts: 1
+  # Full top-k payload dumps can block detached/slow IDE terminals.
+  debug_raw_results: false
+
+answer:
+  # Keep Mem0's retrieved memories fixed while using the same evidence-reading
+  # prompt as RAG. This is also honored by the answer-only fast path.
+  prompt_key: "answer_prompt_cot"
+  max_retries: 3

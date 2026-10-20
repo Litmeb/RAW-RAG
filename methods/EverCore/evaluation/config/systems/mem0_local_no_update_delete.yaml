@@ -1,0 +1,80 @@
+# Mem0 v1 local SDK, with destructive consolidation disabled.
+#
+# Use this system from the dedicated `mem0-events-py312` Conda environment,
+# which pins mem0ai==1.0.11.  The adapter enforces the policy after Mem0's LLM
+# decision: UPDATE becomes ADD and DELETE becomes NONE.  Thus v1's normal
+# extraction and retrieval are retained, but neither update nor delete reaches
+# the vector store or history database.
+
+name: "mem0_local_no_update_delete"
+version: "1.0"
+description: "Mem0 v1 local SDK with ADD/NONE-only memory mutations"
+
+adapter: "mem0"
+client_mode: "local"
+
+batch_size: 5
+max_retries: 3
+max_content_length: 8000
+add_interval: 0.0
+
+add_resume:
+  enabled: true
+  state_file: "mem0_local_no_update_delete_add_resume.json"
+  flush_every_batches: 20
+  resume_partial: true
+
+add_audit:
+  enabled: true
+  file: "mem0_add_audit.jsonl"
+  fsync_each_record: true
+
+num_workers: 10
+
+local:
+  telemetry_enabled: false
+  shard_by_conversation: true
+  http_timeout_seconds: 60
+  http_max_retries: 0
+  # Enforced in Mem0Adapter, not only requested in a prompt.
+  memory_action_policy: "add_only"
+  model_config_files:
+    llm: "config/models/llm.yaml"
+    embedding: "config/models/embedding.yaml"
+    reranker: "config/models/reranker.yaml"
+  memory:
+    version: "v1.1"
+    vector_store:
+      provider: "qdrant"
+      config:
+        collection_name: "mem0_local_no_update_delete"
+        on_disk: true
+
+dataset_overrides:
+  memoryagentbench:
+    batch_size: 2
+    search:
+      top_k: 20
+
+post_add_wait_seconds: 0
+
+llm:
+  provider: "openai"
+  model: "${LLM_MODEL:gpt-4o-mini}"
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+  temperature: 0
+  max_tokens: 16384
+
+search:
+  top_k: 20
+  search_interval: 0.0
+  mem0_rerank: false
+  timeout_seconds: 180
+  max_retries: 2
+  sdk_operation_max_attempts: 1
+  debug_raw_results: false
+
+answer:
+  prompt_key: "answer_prompt_cot"
+  max_retries: 3

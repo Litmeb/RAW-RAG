@@ -1,0 +1,40 @@
+# PersonaMem-v2 Open-Ended Dataset Configuration
+
+name: "personamem_v2_open_ended"
+version: "v2-open-ended"
+description: "PersonaMem-v2 benchmark with open-ended personalized responses"
+
+# Memory language setting (overrides MEMORY_LANGUAGE env var)
+memory_language: "en"
+
+# Data configuration
+data:
+  path: "personamem_v2"
+  format: "personamem_v2_open_ended"
+
+  # The converter will download and use:
+  # - benchmark/text/benchmark.csv
+  # - data/chat_history_32k/*.json
+  # The converted open-ended Locomo-style file is auto-generated as:
+  # - personamem_v2_32k_open_ended_locomo_style.json
+
+# Evaluation configuration
+evaluation:
+  type: "llm_judge"
+  prompt_key: "llm_judge_personamem_open_ended"
+
+  # LLM Judge settings, kept aligned with LoCoMo / LongMemEval.
+  llm:
+    provider: "openai"
+    model: "${EVALUATE_MODEL:gpt-4o-mini-2024-07-18}"
+    api_key: "${LLM_API_KEY}"
+    base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+
+  num_runs: 3
+
+  # PersonaMem-v2 uses 9 conversational scenarios.
+  filter_category: []
+
+  # Open-ended mode uses the original user_query directly and judges against
+  # correct_answer. It intentionally does not expose incorrect_answers/options.
+  question_mode: "open_ended"

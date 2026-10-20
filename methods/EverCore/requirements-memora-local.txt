@@ -1,0 +1,15 @@
+# Install in the required py312pt291cu128 environment after fetching Memora.
+# Memora has no package metadata at the pinned revision, so EverCore imports
+# external/Memora/src directly and lists only the runtime subset used here.
+omegaconf
+openai
+azure-identity
+chromadb
+rank-bm25
+tiktoken
+markdownify
+numpy
+pydantic
+torch
+transformers
+peft

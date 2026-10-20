@@ -1,0 +1,24 @@
+# MemoryAgentBench Dataset Configuration
+
+name: "memoryagentbench"
+version: "1.0"
+description: "MemoryAgentBench benchmark routed by official split/source definitions"
+
+memory_language: "en"
+
+data:
+  path: "memoryagentbench"
+  format: "memoryagentbench"
+  max_content_length: 2000000
+
+evaluation:
+  type: "memoryagentbench"
+
+  llm:
+    provider: "openai"
+    model: "${MEMORYAGENTBENCH_EVALUATE_MODEL:gpt-4o}"
+    api_key: "${LLM_API_KEY}"
+    base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+
+  num_runs: 1
+  filter_category: []

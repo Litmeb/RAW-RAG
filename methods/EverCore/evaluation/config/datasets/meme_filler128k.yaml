@@ -1,0 +1,28 @@
+# MEME Dataset Configuration (filler128k condition)
+
+name: "meme_filler128k"
+version: "1.0"
+description: "MEME benchmark with official filler128k stress-test condition"
+
+memory_language: "en"
+
+data:
+  path: "meme"
+  format: "meme_filler128k"
+
+  # Converter will download/use:
+  # - meme/meme_filler128k.json
+  # - meme/meme_filler128k_locomo_style.json
+  max_content_length: 16000
+
+evaluation:
+  type: "meme_judge"
+
+  llm:
+    provider: "openai"
+    model: "gpt-4o"
+    api_key: "${LLM_API_KEY}"
+    base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+
+  max_concurrency: 10
+  filter_category: []

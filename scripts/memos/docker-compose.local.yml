@@ -1,0 +1,9 @@
+services:
+  neo4j:
+    image: ${MEMOS_NEO4J_IMAGE:-neo4j:5.26.6}
+    ports: !override
+      - "17474:7474"
+      - "17687:7687"
+
+  qdrant:
+    image: ${MEMOS_QDRANT_IMAGE:-qdrant/qdrant:v1.15.3}

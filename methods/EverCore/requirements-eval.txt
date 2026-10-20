@@ -1,0 +1,22 @@
+# LoCoMo evaluation framework (from EverOS, without EverMemOS method)
+# Install: pip install -r requirements-eval.txt
+
+openai>=1.0.0
+pyyaml>=6.0.0
+python-dotenv>=1.0.0
+rich>=13.0.0
+requests>=2.31.0
+tqdm>=4.65.0
+tzdata>=2024.1
+tiktoken>=0.12.0
+psycopg[binary,pool]>=3.1.0
+numpy>=1.24.0
+aiohttp>=3.8.0
+sqlmodel>=0.0.19
+prometheus-client>=0.20.0
+datasets>=2.0.0
+huggingface-hub>=0.20.0
+
+# Optional: for evaluating online memory APIs (mem0, zep, etc.)
+# mem0ai>=1.0.0
+# zep-cloud>=2.0.0

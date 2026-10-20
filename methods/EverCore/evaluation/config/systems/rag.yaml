@@ -1,0 +1,156 @@
+# Local RAG System Configuration
+
+name: "rag"
+version: "1.0"
+description: "Local chunk RAG with embedding similarity and rerank"
+
+adapter: "rag"
+
+# Conversation/sample-level concurrency.
+sample_workers: 2
+
+chunking:
+  # strategy: token = fixed token windows for retrieval/indexing
+  #           turn = pack complete message turns (legacy)
+  strategy: token
+  # Expand retrieved token chunks to complete turns when formatting LLM context.
+  expand_turns_on_display: true
+  # When turn expansion is enabled, deduplicate repeated turns across displayed memories.
+  dedup_turns_on_display: false
+  # Use -1 to put the full conversation into a single chunk.
+  chunk_size: 256
+  chunk_overlap: 32
+  tokenizer_model: "gpt-4"
+
+embedding:
+  provider: "openai"
+  model: "${VECTORIZE_MODEL:text-embedding-3-small}"
+  api_key: "${VECTORIZE_API_KEY}"
+  base_url: "${VECTORIZE_BASE_URL:https://api.openai.com/v1}"
+  batch_size: 128
+  max_retries: 3
+
+storage:
+  # Default local mode keeps the existing rag_index.json embedding behavior.
+  # Set backend to pgvector, or set pgvector.enabled=true, to store embeddings in Postgres.
+  backend: "local"
+  # Persist rag_index.json every N completed conversations during Add.
+  # Default to a batch save cadence for all benches except locomo.
+  save_every_conversations: 10
+  pgvector:
+    enabled: false
+    database_url: "${RAG_PGVECTOR_DATABASE_URL:}"
+    # Empty collection_name defaults to the output directory name, so each run is isolated.
+    collection_name: "${RAG_PGVECTOR_COLLECTION:}"
+    table_name: "${RAG_PGVECTOR_TABLE:rag_vectors}"
+
+dataset_overrides:
+  locomo:
+    search:
+      embedding_top_k: 128
+      rerank_top_k: 15
+    storage:
+      save_every_conversations: 10
+  memoryagentbench:
+    chunking:
+      expand_turns_on_display: false
+    sources:
+      factconsolidation_sh_262k:
+        # The fact converter creates one message per fact. Keep those
+        # messages atomic in the RAG index instead of merging them into
+        # 256-token windows.
+        chunking:
+          strategy: turn
+          chunk_size: 1
+          chunk_overlap: 0
+      factconsolidation_mh_262k:
+        chunking:
+          strategy: turn
+          chunk_size: 1
+          chunk_overlap: 0
+  meme:
+    search:
+      sort_selected_chunks_by_time: true
+    answer:
+      prompt_key: "answer_prompt_meme_official"
+    storage:
+      save_every_conversations: 10
+  meme_filler128k:
+    answer:
+      prompt_key: "answer_prompt_meme_official"
+    storage:
+      save_every_conversations: 10
+  meme_nofiller:
+    answer:
+      prompt_key: "answer_prompt_meme_official"
+    storage:
+      save_every_conversations: 10
+  longmemeval:
+    storage:
+      # LongMemEval add builds many large conversations; save less often to reduce I/O.
+      save_every_conversations: 10
+  personamem:
+    answer:
+      prompt_key: "answer_prompt_personamem"
+    storage:
+      save_every_conversations: 10
+  personamem_v2:
+    answer:
+      prompt_key: "answer_prompt_personamem"
+    storage:
+      save_every_conversations: 10
+  personamem_v2_open_ended:
+    answer:
+      prompt_key: "answer_prompt_personamem_v2_open_ended_official"
+    evaluation:
+      type: "personamem_v2_official_judge"
+      llm:
+        provider: "openai"
+        model: "${PERSONAMEM_V2_JUDGE_MODEL:gpt-5-chat-latest}"
+        api_key: "${LLM_API_KEY}"
+        base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+        temperature: 0
+        max_tokens: 2048
+      num_runs: 1
+      max_concurrency: 100
+      score_threshold: 0.5
+      store_judge_responses: true
+    storage:
+      save_every_conversations: 10
+  evermembench:
+    storage:
+      save_every_conversations: 10
+
+rerank:
+  enabled: true
+  model: "${RERANK_MODEL}"
+  api_key: "${RERANK_API_KEY}"
+  base_url: "${RERANK_BASE_URL:https://api.jina.ai}"
+  endpoint: "${RERANK_ENDPOINT:/v1/rerank}"
+  timeout_seconds: 120
+  max_retries: 3
+
+llm:
+  provider: "openai"
+  model: "${LLM_MODEL:gpt-4o-mini}"
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+  temperature: 0
+  max_tokens: 16384
+
+search:
+  embedding_top_k: 128
+  rerank_top_k: 15
+  # Preserve reranker relevance order unless a dataset override requests
+  # chronological presentation of the selected evidence.
+  sort_selected_chunks_by_time: false
+  dynamic_top_k:
+    enabled: false
+    score_threshold: 0.5
+    fallback_top_k: 3
+  num_workers: 8
+
+answer:
+  prompt_key: "answer_prompt_cot"
+  num_workers: 50
+  max_retries: 3

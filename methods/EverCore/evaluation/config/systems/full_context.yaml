@@ -1,0 +1,29 @@
+name: full_context
+version: "1.0"
+description: Full raw history with bounded answer requests
+adapter: full_context
+llm:
+  model: "${LLM_MODEL:gpt-4o-mini}"
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+  temperature: 0
+  max_tokens: 4096
+answer:
+  context_window: 128000
+  context_safety_margin: 256
+  truncation_strategy: head_tail
+  prompt_key: answer_prompt_cot
+  num_workers: 10
+  max_retries: 3
+search:
+  num_workers: 4
+dataset_overrides:
+  meme:
+    answer:
+      prompt_key: answer_prompt_meme_official
+  meme_nofiller:
+    answer:
+      prompt_key: answer_prompt_meme_official
+  meme_filler128k:
+    answer:
+      prompt_key: answer_prompt_meme_official

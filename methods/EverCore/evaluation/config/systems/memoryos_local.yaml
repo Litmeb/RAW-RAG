@@ -1,0 +1,51 @@
+# BAI-LAB MemoryOS running from the official Docker image.
+name: "memoryos_local"
+version: "1.0"
+description: "BAI-LAB MemoryOS via the local Docker HTTP bridge"
+
+adapter: "memoryos"
+api_url: "${MEMORYOS_LOCAL_URL:http://localhost:8010}"
+api_key: "${MEMORYOS_LOCAL_KEY:}"
+require_api_key: false
+use_gpu: true
+
+batch_size: 1
+max_retries: 5
+# Retry transient disconnects/timeouts with exponential backoff and jitter.
+retry_backoff_seconds: 2
+retry_backoff_max_seconds: 60
+retry_jitter_seconds: 1
+# MemoryOS performs several upstream LLM calls synchronously for each add.
+# Keep Add concurrency low enough to avoid server-side disconnects.
+requests_per_second: 6
+http_timeout_seconds: 300
+num_workers: 10
+post_add_wait_seconds: 0
+
+# Fine-grained Add checkpoint. The state is flushed atomically after every
+# successful MemoryOS request, so rerunning the same command skips completed
+# requests after an interruption.
+add_resume:
+  enabled: true
+  state_file: "memoryos_local_add_resume.json"
+
+dataset_overrides:
+  memoryagentbench:
+    batch_size: 1
+    search:
+      top_k: 20
+
+search:
+  top_k: 20
+  num_workers: 10
+
+llm:
+  provider: "openai"
+  model: "${LLM_MODEL:gpt-4o-mini}"
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+  temperature: 0
+  max_tokens: 16384
+
+answer:
+  max_retries: 3

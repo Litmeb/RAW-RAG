@@ -1,0 +1,4 @@
+-r requirements-eval.txt
+ijson>=3.2.0
+pandas>=2.0.0
+scipy>=1.11.0

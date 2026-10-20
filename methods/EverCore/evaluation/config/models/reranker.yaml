@@ -1,0 +1,8 @@
+# Mem0 local SDK reranker configuration.
+# Used by methods/EverCore/evaluation/config/systems/mem0_local.yaml.
+
+mem0:
+  provider: "cohere"
+  config:
+    model: "${RERANK_MODEL:rerank-v3.5}"
+    api_key: "${RERANK_API_KEY}"

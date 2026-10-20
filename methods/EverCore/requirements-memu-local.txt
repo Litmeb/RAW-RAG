@@ -1,0 +1,18 @@
+# Dedicated environment for the local memU v1.5.1 adapter.
+memu-py==1.5.1
+# Required by memU's PostgreSQL/pgvector backend.
+pgvector>=0.3.0
+psycopg[binary]>=3.2.0
+rich>=13.0.0
+requests>=2.31.0
+aiohttp>=3.8.0
+aiolimiter>=1.2.1
+python-dotenv>=1.0.0
+certifi>=2024.1.1
+tiktoken>=0.12.0
+prometheus-client>=0.20.0
+datasets>=2.19.0
+# Exact GPU cosine similarity in the memu_local adapter.
+torch>=2.6.0
+# Optional FAISS-GPU backend. Official prebuilt packages are Linux-only.
+faiss-gpu>=1.14.3; platform_system == "Linux"

@@ -1,0 +1,14 @@
+# Text-only upstream components; API embeddings avoid a local torch/model install.
+-r requirements-eval.txt
+openai==2.3.0
+sqlmodel>=0.0.22
+aiohttp>=3.10.0
+httpx>=0.27.0
+prometheus-client>=0.20.0
+lancedb==0.25.3
+pyarrow==22.0.0
+pylance==0.39.0
+tantivy>=0.20.0
+dateparser>=1.1.0
+numpy>=1.24.0
+pandas>=2.0.0

@@ -1,0 +1,117 @@
+# Microsoft Memora, pinned to the local checkout under external/Memora.
+name: "memora"
+version: "1.0"
+description: "Microsoft Memora local SDK (harmonic memory representation)"
+adapter: "memora"
+
+# Match mem0_local's concurrency, answer model, retrieval budget, and evaluator.
+num_workers: 10
+post_add_wait_seconds: 0
+
+memora:
+  root: "external/Memora"
+  revision: "dec3f8f2444eace7004fc084abe1be9f3d88270e"
+  persist_dir: "memora_store"
+  # Each conversation gets its own Chroma PersistentClient directory. This
+  # avoids shared SQLite/HNSW mutation and makes num_workers true Add parallelism.
+  resume_file: "memora_add_resume.json"
+  batch_size: 2
+  enable_segmentation: true
+  # Some OpenAI-compatible embedding gateways take longer than the SDK's
+  # default timeout while their worker pool is busy.  Keep retries bounded so
+  # a transient gateway timeout does not discard an otherwise resumable run.
+  timeout_seconds: 600
+  sdk_max_retries: 3
+  # Segment construction also calls the configured LLM.  Bound it separately
+  # from search workers to avoid overwhelming a shared compatible endpoint.
+  segment_workers: 2
+  # Memora's factual-memory schema can produce substantially more output than
+  # input. Keep each extraction request bounded so 4096-token MAB source chunks
+  # do not hit an OpenAI-compatible endpoint's 16384-token completion ceiling.
+  store_chunk_chars: 10000
+  # On LengthFinishReasonError, recursively halve only the failing request down
+  # to this floor. Successful sibling chunks remain resumable.
+  min_store_chunk_chars: 1000
+
+  llm:
+    model: "${LLM_MODEL:gpt-4o-mini}"
+    api_key: "${LLM_API_KEY}"
+    base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+    seed: 42
+    temperature: 0
+
+  embedding:
+    model: "${VECTORIZE_MODEL:text-embedding-3-small}"
+    api_key: "${VECTORIZE_API_KEY}"
+    base_url: "${VECTORIZE_BASE_URL:https://api.openai.com/v1}"
+
+  memory:
+    collection_name: "memora"
+    distance: "cosine"
+    query_score_threshold: 0.4
+    update_score_threshold: 0.8
+    return_history: true
+    enhance_query: false
+    enable_cue_index: true
+    cue_top_k: 20
+    enable_hybrid_search: true
+    hybrid_search_method: "bm25"
+    hybrid_top_k: 10
+    bm25_score_threshold: 0.4
+    enable_episodic_memory: true
+    use_segments_as_episodic: true
+
+retrieval:
+  strategy: "prompt"
+  prompted_policy:
+    # Upstream PromptedPolicyRetriever currently defaults to five iterations.
+    max_steps: 5
+  enable_llm_filter: false
+  enable_relaxed_frontier: false
+
+dataset_overrides:
+  memoryagentbench:
+    # MAB converters already apply official source-aware chunking. One converted
+    # chunk is one Memora add unit, preventing accidental cross-chunk merging.
+    memora:
+      enable_segmentation: false
+      batch_size: 1
+      # Chroma's embedded HNSW index retains native memory during very long Add
+      # stages. Persist the per-session resume state and recycle the worker at
+      # this interval so the OS can reclaim that memory deterministically.
+      recycle_every_sessions: 100
+    search:
+      top_k: 20
+
+llm:
+  provider: "openai"
+  model: "${LLM_MODEL:gpt-4o-mini}"
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+  temperature: 0
+  max_tokens: 16384
+
+search:
+  top_k: 20
+  num_workers: 10
+  timeout_seconds: 300
+  max_retries: 2
+  temporal_fetch_multiplier: 5
+  temporal_fetch_cap: 100
+
+answer:
+  prompt_key: "answer_prompt_cot"
+  max_retries: 3
+  # Memora memories can include long episodic histories. Keep the evidence plus
+  # the 16k-token completion allowance safely inside 128k-context endpoints.
+  # Retrieval order is preserved, so the highest-ranked memories survive.
+  max_context_tokens: 100000
+
+comparison_protocol:
+  reference_system: "mem0_local"
+  normalized_dataset_inputs: true
+  same_retrieved_item_budget: 20
+  same_answer_model: true
+  same_answer_prompt: true
+  same_evaluator: true
+  native_memory_construction_and_retrieval: true

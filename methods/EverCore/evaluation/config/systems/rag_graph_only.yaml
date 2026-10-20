@@ -1,0 +1,78 @@
+# Reverse ablation: use graph / structured memory as the only returned evidence.
+
+name: "rag_graph_only"
+version: "1.0"
+description: "Local RAG over LLM-extracted graph events and relations"
+adapter: "rag_memory_ablation"
+
+sample_workers: 16
+
+chunking:
+  strategy: token
+  expand_turns_on_display: true
+  dedup_turns_on_display: false
+  chunk_size: 256
+  chunk_overlap: 32
+  tokenizer_model: "gpt-4"
+
+dataset_overrides:
+  memoryagentbench:
+    chunking:
+      expand_turns_on_display: false
+
+memory:
+  variant: "graph_only"
+  fail_on_extraction_error: true
+  max_extract_concurrency: 16
+  llm:
+    provider: "openai"
+    model: "${MEMORY_EXTRACT_MODEL:gpt-4o-mini-2024-07-18}"
+    api_key: "${MEMORY_EXTRACT_API_KEY}"
+    base_url: "${MEMORY_EXTRACT_BASE_URL}"
+    temperature: 0
+    max_tokens: 4096
+    max_retries: 3
+    json_response: false
+
+embedding:
+  provider: "openai"
+  model: "${VECTORIZE_MODEL:text-embedding-3-small}"
+  api_key: "${VECTORIZE_API_KEY}"
+  base_url: "${VECTORIZE_BASE_URL:https://api.openai.com/v1}"
+  batch_size: 128
+  max_retries: 3
+
+storage:
+  backend: "local"
+  save_every_conversations: 10
+
+rerank:
+  enabled: true
+  model: "${RERANK_MODEL}"
+  api_key: "${RERANK_API_KEY}"
+  base_url: "${RERANK_BASE_URL:https://api.jina.ai}"
+  endpoint: "${RERANK_ENDPOINT:/v1/rerank}"
+  timeout_seconds: 120
+  max_retries: 3
+
+llm:
+  provider: "openai"
+  model: "${LLM_MODEL:gpt-4o-mini}"
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL:https://openrouter.ai/api/v1}"
+  temperature: 0
+  max_tokens: 16384
+
+search:
+  embedding_top_k: 128
+  rerank_top_k: 15
+  dynamic_top_k:
+    enabled: false
+    score_threshold: 0.5
+    fallback_top_k: 3
+  num_workers: 64
+
+answer:
+  prompt_key: "answer_prompt_cot"
+  num_workers: 32
+  max_retries: 3
