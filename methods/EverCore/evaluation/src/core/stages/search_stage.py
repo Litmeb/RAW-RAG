@@ -20,6 +20,16 @@ def _build_search_query(qa: QAPair, adapter: BaseAdapter) -> str:
     as FactConsolidation and RULER. The answer stage still applies the official
     prompt before calling the LLM.
     """
+    search_config = getattr(adapter, "config", {}).get("search", {})
+    if search_config.get("personamem_raw_query", False):
+        from evaluation.src.converters.personamem_v2_converter import (
+            _extract_user_query_content,
+        )
+
+        raw_query = qa.metadata.get("raw_user_query")
+        if not isinstance(raw_query, str) or not raw_query.strip():
+            raise ValueError("personamem_raw_query requires raw_user_query metadata")
+        return _extract_user_query_content(raw_query)
     return qa.question
 
 

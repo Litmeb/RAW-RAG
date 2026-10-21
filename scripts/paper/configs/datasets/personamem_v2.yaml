@@ -1,0 +1,12 @@
+name: personamem_v2
+version: "v2"
+memory_language: en
+data:
+  path: personamem_v2
+  format: personamem_v2
+evaluation:
+  type: exact_match
+  case_sensitive: false
+  normalize_whitespace: true
+  extract_choice: true
+  filter_category: []

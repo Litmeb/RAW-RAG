@@ -158,27 +158,10 @@ class MemoryAgentBenchEvaluator(BaseEvaluator):
                 try:
                     return await self._evaluate_single(answer_result)
                 except Exception as exc:
-                    reason = f"{type(exc).__name__}: {exc}"
-                    print(
-                        f"  ⚠️ Skipping question {answer_result.question_id} after "
-                        f"judge failures: {reason}"
-                    )
-                    metadata = answer_result.metadata or {}
-                    return {
-                        "question_id": answer_result.question_id,
-                        "question": answer_result.question,
-                        "golden_answer": answer_result.golden_answer,
-                        "generated_answer": answer_result.answer or "",
-                        "category": answer_result.category,
-                        "source": str(metadata.get("source", "unknown")),
-                        "evaluation_family": str(
-                            metadata.get("evaluation_family", "unknown")
-                        ),
-                        "metric_value": 0.0,
-                        "metric_name": "skipped",
-                        "skipped": True,
-                        "skip_reason": reason,
-                    }
+                    raise RuntimeError(
+                        f"MemoryAgentBench evaluation failed for question "
+                        f"{answer_result.question_id}: {exc}"
+                    ) from exc
 
         detailed_results = await asyncio.gather(
             *(evaluate_one(result) for result in answer_results)

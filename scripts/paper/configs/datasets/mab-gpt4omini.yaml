@@ -1,0 +1,16 @@
+name: memoryagentbench
+version: "1.0"
+memory_language: en
+data:
+  path: memoryagentbench
+  format: memoryagentbench
+  max_content_length: 2000000
+evaluation:
+  type: memoryagentbench
+  llm:
+    provider: openai
+    model: gpt-4o
+    api_key: "${LLM_API_KEY}"
+    base_url: "${LLM_BASE_URL:https://api.openai.com/v1}"
+  num_runs: 1
+  filter_category: []

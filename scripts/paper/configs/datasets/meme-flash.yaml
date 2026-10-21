@@ -1,0 +1,18 @@
+name: meme
+version: "1.0"
+memory_language: en
+data:
+  path: meme
+  format: meme
+  max_content_length: 16000
+evaluation:
+  type: meme_judge
+  llm:
+    provider: openai
+    model: gpt-4o-2024-11-20
+    api_key: "${LLM_API_KEY}"
+    base_url: "${LLM_BASE_URL:https://api.openai.com/v1}"
+    temperature: 0
+  num_runs: 1
+  max_concurrency: 10
+  filter_category: []

@@ -1,0 +1,18 @@
+name: longmemeval
+version: "1.0"
+memory_language: en
+data:
+  path: longmemeval
+  format: longmemeval
+  max_content_length: null
+evaluation:
+  type: llm_judge
+  prompt_key: llm_judge
+  llm:
+    provider: openai
+    model: gpt-4o-mini-2024-07-18
+    api_key: "${LLM_API_KEY}"
+    base_url: "${LLM_BASE_URL:https://api.openai.com/v1}"
+    temperature: 0
+  num_runs: 3
+  filter_category: []

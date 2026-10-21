@@ -160,6 +160,8 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r requirements-eval.txt
+# Required once for the LoCoMo F1/BLEU-1 scoring used by minimal-answer profiles.
+python -m nltk.downloader punkt_tab
 ```
 
 `requirements-eval.txt` covers RAW-RAG, its benchmark preparation, reader and
@@ -179,6 +181,40 @@ python -m pip install -r requirements-memora-local.txt
 ```
 
 ### 2. Match the Paper Configuration
+
+For RAW-RAG main results and appendix evaluation variants, use the frozen
+[paper profiles and PowerShell runner](scripts/paper/README.md).
+They cover 15 conditions (including two report-only non-abstention subsets),
+with explicit readers, retrieval models, prompts, and judges:
+
+```powershell
+# From the package root; preview only, with no file changes or model calls.
+pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group All -List
+pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group All -DryRun
+# Run the seven main conditions, or use -Group All for the appendix as well.
+pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group Main
+```
+
+`-Group All` also runs both LoCoMo minimal-answer conditions and automatically
+reports J/F1/BLEU-1 after their answer/evaluate stages. To score an existing
+minimal run without any model calls, run from `methods/EverCore`:
+
+```powershell
+python -m evaluation.scripts.score_locomo_lexical `
+  --run-dir evaluation/results/locomo-rag-paper-locomo-textemb3-gpt4omini-minimal `
+  --with-judge --expected-questions 1540 --expected-judgments 3
+```
+
+Repeat with `gpt41mini` for the other reader. Reports are saved as
+`lexical_metrics.json` (per-question, category and overall scores) and
+`lexical_report.txt`, without modifying saved answers or LLM judgments.
+See the [metric definitions and scoring workflow](scripts/paper/README.md#locomo-lexical-reports).
+
+Actual execution permanently replaces the active system, dataset, and prompt
+YAML files. It does not back them up, restore them, or check benchmark data.
+Run serially in one checkout. Ablations and diagnostics are outside this runner.
+The following manual instructions apply to generic runs and other systems;
+the profiles supersede them for the named RAW-RAG conditions.
 
 Before every reproduction run, first update:
 

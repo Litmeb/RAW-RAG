@@ -202,6 +202,8 @@ Output ONLY JSON: {{"correct": true/false, "reason": "one sentence"}}"""
         self.model = llm_config.get("model", "gpt-4o")
         self.num_runs = int(config.get("num_runs", 3))
         self.max_concurrency = int(config.get("max_concurrency", 10))
+        self.max_attempts = max(1, int(config.get("max_attempts", 3)))
+        self.retry_delay_seconds = max(0.0, float(config.get("retry_delay_seconds", 1)))
 
     async def evaluate(self, answer_results: List[AnswerResult]) -> EvaluationResult:
         print(f"\n{'='*60}")
@@ -444,7 +446,7 @@ Output ONLY JSON: {{"correct": true/false, "reason": "one sentence"}}"""
                     partial_pass += 1
                     last_pos = pos
             return {
-                "u_pass": bool(result.get("correct", False)),
+                "u_pass": result["correct"],
                 "u_reason": result.get("reason", ""),
                 "u_pass_count": partial_pass,
                 "u_pass_total": len(history),
@@ -463,7 +465,7 @@ Output ONLY JSON: {{"correct": true/false, "reason": "one sentence"}}"""
             )
         )
         return {
-            "u_pass": bool(result.get("correct", False)),
+            "u_pass": result["correct"],
             "u_reason": result.get("reason", ""),
         }
 
@@ -480,17 +482,14 @@ Output ONLY JSON: {{"correct": true/false, "reason": "one sentence"}}"""
                 question=question,
                 gold_values=", ".join(f'"{value}"' for value in values_list),
                 agent_answer=agent_answer,
-            )
+            ),
+            expected_results=len(entity_order),
         )
 
         per_entity = {}
-        results_list = result.get("results", [])
+        results_list = result["results"]
         for idx, entity in enumerate(entity_order):
-            per_entity[entity] = (
-                bool(results_list[idx].get("present", False))
-                if idx < len(results_list)
-                else False
-            )
+            per_entity[entity] = results_list[idx]["present"]
 
         pass_count = sum(1 for passed in per_entity.values() if passed)
         return {
@@ -501,13 +500,31 @@ Output ONLY JSON: {{"correct": true/false, "reason": "one sentence"}}"""
             "u_reason": result.get("reason", ""),
         }
 
-    async def _call_json(self, prompt: str) -> Dict[str, Any]:
-        response = await self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0,
-        )
-        content = response.choices[0].message.content or "{}"
+    async def _call_json(
+        self, prompt: str, *, expected_results: int | None = None
+    ) -> Dict[str, Any]:
+        for attempt in range(self.max_attempts):
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
+            )
+            content = response.choices[0].message.content
+            try:
+                result = self._parse_judge_json(content)
+                self._validate_judge_result(result, expected_results)
+                return result
+            except ValueError as exc:
+                if attempt + 1 == self.max_attempts:
+                    raise ValueError(
+                        f"Invalid MEME judge response after {self.max_attempts} attempts: {exc}"
+                    ) from exc
+                await asyncio.sleep(self.retry_delay_seconds)
+
+    @staticmethod
+    def _parse_judge_json(content: str | None) -> Any:
+        if not content or not content.strip():
+            raise ValueError("Empty MEME judge response")
         try:
             return json.loads(content)
         except json.JSONDecodeError:
@@ -521,6 +538,26 @@ Output ONLY JSON: {{"correct": true/false, "reason": "one sentence"}}"""
             if json_match:
                 return json.loads(json_match.group(0))
             raise
+
+    @staticmethod
+    def _validate_judge_result(result: Any, expected_results: int | None) -> None:
+        if not isinstance(result, dict):
+            raise ValueError("MEME judge response must be a JSON object")
+        if "reason" in result and not isinstance(result["reason"], str):
+            raise ValueError("MEME judge reason must be a string")
+        if expected_results is None:
+            if type(result.get("correct")) is not bool:
+                raise ValueError("MEME judge correct must be a JSON boolean")
+            return
+
+        results = result.get("results")
+        if not isinstance(results, list) or len(results) != expected_results:
+            raise ValueError(
+                f"MEME judge results must contain exactly {expected_results} items"
+            )
+        for index, item in enumerate(results):
+            if not isinstance(item, dict) or type(item.get("present")) is not bool:
+                raise ValueError(f"MEME judge results[{index}].present must be a JSON boolean")
 
     def _merge_judgments(self, judgments: List[Dict[str, Any]]) -> Dict[str, Any]:
         if not judgments:

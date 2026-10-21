@@ -20,6 +20,7 @@ from evaluation.src.core.pipeline import Pipeline
 from evaluation.src.core.stages.search_stage import run_search_stage
 from evaluation.src.datasets.memoryagentbench import resolve_chunking_options
 from evaluation.src.evaluators.llm_judge import LLMJudge
+from evaluation.src.evaluators.memoryagentbench import MemoryAgentBenchEvaluator
 from evaluation.src.utils.config import load_yaml
 from evaluation.src.utils.fingerprint import fingerprint, public_config
 from evaluation.src.utils.run_identity import guard_artifacts, RUN_ARTIFACTS
@@ -412,6 +413,75 @@ def test_pipeline_judge_failure_leaves_evaluation_incomplete(adapter):
     checkpoint = json.loads((adapter.output_dir / "checkpoint_default.json").read_text(encoding="utf-8"))
     assert "evaluate" not in checkpoint["completed_stages"]
     assert (adapter.output_dir / "judge_progress.json").exists()
+
+
+@pytest.mark.parametrize("failure", ["exception", "timeout", "empty", "none"])
+def test_pipeline_reader_failure_aborts_and_can_be_retried(adapter, monkeypatch, failure):
+    if failure in {"exception", "timeout"}:
+        error = RuntimeError("reader unavailable") if failure == "exception" else asyncio.TimeoutError()
+        adapter.answer.side_effect = error
+    else:
+        adapter.answer.return_value = "  " if failure == "empty" else None
+    monkeypatch.setattr(asyncio, "sleep", AsyncMock())
+    evaluator = judge()
+    dataset = Dataset("meme", [conversation()], [
+        QAPair("q", "query", "answer", metadata={"conversation_id": "meme_0"}),
+    ])
+    pipeline = Pipeline(adapter, evaluator, None, adapter.output_dir)
+    with pytest.raises(RuntimeError, match="Answer generation failed for question q"):
+        asyncio.run(pipeline.run(dataset))
+    assert adapter.answer.await_count == (3 if failure == "timeout" else 1)
+    evaluator.client.chat.completions.create.assert_not_called()
+    for name in ("answer_results.json", "eval_results.json", "report.txt"):
+        assert not (adapter.output_dir / name).exists()
+    checkpoint = json.loads((adapter.output_dir / "checkpoint_default.json").read_text(encoding="utf-8"))
+    assert "answer" not in checkpoint["completed_stages"]
+    assert "evaluate" not in checkpoint["completed_stages"]
+
+    adapter.answer.reset_mock()
+    adapter.answer.side_effect = None
+    adapter.answer.return_value = "answer"
+    asyncio.run(pipeline.run(dataset))
+    adapter.answer.assert_awaited_once()
+    assert (adapter.output_dir / "eval_results.json").exists()
+
+
+def test_pipeline_mab_judge_failure_aborts_instead_of_skipping(adapter):
+    evaluator = MemoryAgentBenchEvaluator({
+        "llm": {"api_key": "offline", "base_url": "http://127.0.0.1:1/v1"},
+        "judge_max_attempts": 1,
+    })
+    evaluator.client.chat.completions.create = AsyncMock(
+        side_effect=RuntimeError("judge unavailable")
+    )
+    dataset = Dataset("meme", [conversation()], [
+        QAPair("good", "query", "answer", metadata={
+            "conversation_id": "meme_0", "source": "test",
+            "evaluation_family": "substring_exact_match",
+        }),
+        QAPair("bad", "query", "answer", metadata={
+            "conversation_id": "meme_0", "source": "test",
+            "evaluation_family": "longmemeval",
+        }),
+    ])
+    pipeline = Pipeline(adapter, evaluator, None, adapter.output_dir)
+    with pytest.raises(RuntimeError, match="MemoryAgentBench evaluation failed for question bad"):
+        asyncio.run(pipeline.run(dataset))
+    assert (adapter.output_dir / "answer_results.json").exists()
+    assert not (adapter.output_dir / "eval_results.json").exists()
+    assert not (adapter.output_dir / "report.txt").exists()
+    checkpoint = json.loads((adapter.output_dir / "checkpoint_default.json").read_text(encoding="utf-8"))
+    assert "answer" in checkpoint["completed_stages"]
+    assert "evaluate" not in checkpoint["completed_stages"]
+
+    adapter.answer.reset_mock()
+    evaluator.client.chat.completions.create.side_effect = None
+    evaluator.client.chat.completions.create.return_value = response("yes")
+    result = asyncio.run(pipeline.run(dataset))["eval_result"]
+    adapter.answer.assert_not_called()
+    assert result.total_questions == 2
+    assert result.accuracy == 1.0
+    assert result.metadata["skipped_count"] == 0
 
 
 def test_judge_retries_a_transient_failure():

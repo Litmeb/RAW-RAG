@@ -311,6 +311,8 @@ async def run_answer_stage(
                             timeout=timeout_seconds
                         )
                         answer = answer.strip()
+                        if not answer:
+                            raise ValueError("Empty answer returned by reader")
                         break  # Success, exit retry loop
                         
                     except asyncio.TimeoutError:
@@ -319,13 +321,13 @@ async def run_answer_stage(
                             await asyncio.sleep(2)  # Short delay before retry
                         else:
                             tqdm.write(f"  ❌ Timeout after {max_retries} attempts for {qa.question_id}: {qa.question[:50]}...")
-                            answer = "Error: Answer generation timeout after retries"
-                            failed += 1
+                            raise
             
             except Exception as e:
                 tqdm.write(f"  ⚠️ Answer generation failed for {qa.question_id}: {e}")
-                answer = "Error: Failed to generate answer"
-                failed += 1
+                raise RuntimeError(
+                    f"Answer generation failed for question {qa.question_id}: {e}"
+                ) from e
             
             result = AnswerResult(
                 question_id=qa.question_id,
@@ -373,10 +375,10 @@ async def run_answer_stage(
     ]
     
     # Execute concurrently
-    await asyncio.gather(*tasks)
-    
-    # Close progress bar
-    pbar.close()
+    try:
+        await asyncio.gather(*tasks)
+    finally:
+        pbar.close()
     
     # Statistics
     elapsed_time = max(time.perf_counter() - start_time, 1e-9)
