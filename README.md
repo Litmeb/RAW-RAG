@@ -48,25 +48,22 @@ RAW-RAG uses a fixed **build, retrieve, rerank, read** pipeline:
 
 1. **Build:** serialize conversation history with timestamps and available
    image captions; embed overlapping raw-text windows in a flat index.
-   The default window size is 256 tokens with 32-token overlap.
-2. **Retrieve:** embed the question and select the top 128 windows by cosine
+   Use a window size of $L$ tokens with an overlap of $O$ tokens.
+2. **Retrieve:** embed the question and select the top $K$ windows by cosine
    similarity.
 3. **Rerank:** score question-window pairs with a cross-encoder and select the
-   top 15 evidence items.
+   top $k$ evidence items, where $k \leq K$.
 4. **Read:** supply the selected raw evidence and question to the reader LLM,
    which resolves relevant temporal order and state changes.
-
-<p align="center">
-  <img width="95%" src="assets/raw_rag_pipeline.png" alt="RAW-RAG retrieval: query and embedded raw chunks, top-128 dense retrieval, reranking, and top-15 evidence">
-</p>
 
 The baseline does not use LLM-based fact extraction, summarization, graph
 construction, or memory mutation during ingestion. These operations appear
 only in separate ablations or external baselines.
 
-These are the default retrieval settings, not a universal context budget.
+The parameters $L$, $O$, $K$, and $k$ are configurable and do not define a
+universal context budget.
 Benchmark-specific serialization, evidence display, and source-conversion
-rules still apply. In particular, top-15 limits the number of selected items,
+rules still apply. In particular, $k$ limits the number of selected items,
 not necessarily the number of tokens shown to the reader. See
 [Match the Paper Configuration](#2-match-the-paper-configuration) before running
 an experiment.
@@ -316,6 +313,7 @@ For the sequential BEAM-1M ingestion experiment:
 python -m evaluation.scripts.convert_beam_1m_sequence
 python -m evaluation.speed_sequence_cli `
   --system rag `
+  --run-name paper-beam-1m `
   --data-dir ..\..\beam\BEAM-1M
 ```
 
