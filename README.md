@@ -56,22 +56,14 @@ RAW-RAG uses a fixed **build, retrieve, rerank, read** pipeline:
 4. **Read:** supply the selected raw evidence and question to the reader LLM,
    which resolves relevant temporal order and state changes.
 
-The baseline does not use LLM-based fact extraction, summarization, graph
-construction, or memory mutation during ingestion. These operations appear
-only in separate ablations or external baselines.
-
-The parameters $L$, $O$, $K$, and $k$ are configurable and do not define a
-universal context budget.
-Benchmark-specific serialization, evidence display, and source-conversion
-rules still apply. In particular, $k$ limits the number of selected items,
-not necessarily the number of tokens shown to the reader. See
-[Match the Paper Configuration](#2-match-the-paper-configuration) before running
-an experiment.
+Ingestion preserves raw text without LLM-based extraction or summarization.
+The retrieval parameters are configurable; $k$ counts evidence items, not
+tokens. Benchmark-specific settings are listed in the
+[paper profiles](scripts/paper/README.md).
 
 ## Evaluation Results
 
-The following scores are **reported in the manuscript**, not newly measured
-from this checkout. Higher is better; scores and differences are in percentage
+Manuscript results. Higher is better; scores and differences are in percentage
 points. "Best compared memory system" excludes RAW-RAG and Full-context.
 
 | Benchmark | Reader | RAW-RAG | Best compared memory system | Difference |
@@ -88,8 +80,7 @@ LoCoMo uses 1,540 non-adversarial questions from 10 conversations; LongMemEval
 uses 500 examples. MEME reports the six-task macro-average over 1,188
 phase-specific questions from 100 episodes. MemoryAgentBench reports the mean
 of four capability macro-averages over 2,071 questions from 14 sources.
-PersonaMem-v2 is an additional appendix evaluation, not one of the four
-benchmarks behind the six-of-seven headline.
+PersonaMem-v2 is evaluated in the appendix.
 
 <p align="center">
   <img width="100%" src="assets/teaser_results.png" alt="Paper overview: accuracy in seven benchmark-model settings and sequential BEAM-1M ingestion time">
@@ -102,15 +93,7 @@ system in each setting.*
 **Efficiency.** On the paper's 10-episode, 110-question MEME timing experiment,
 RAW-RAG takes 50.32 seconds for add-to-ready and 255.59 seconds for search,
 totaling 305.91 seconds. Answer generation and evaluation are excluded.
-The figure separately reports cumulative sequential ingestion on BEAM-1M;
-these are different timing experiments, not end-to-end serving benchmarks.
-
-**Scope.** These are comparisons under the manuscript's evaluation settings,
-not a claim of universal state of the art. RAW-RAG does not lead every task:
-on DeepSeek-V4-Flash MEME, MemMachine scores 44.71 and Full-context scores
-63.17, compared with RAW-RAG's 43.19. Reader capability, evaluation protocol,
-and evidence budget affect the outcome. The supplied configurations must be
-checked against the manuscript before attempting to reproduce these scores.
+The figure also reports cumulative sequential ingestion on BEAM-1M.
 
 ## What Explains the Results?
 
@@ -128,10 +111,6 @@ checked against the manuscript before attempting to reproduce these scores.
   cascades, and invalidation require linked events and dependencies, not
   merely isolated mentions of answer values.
 
-The takeaway is to include a well-configured raw-history retrieval baseline
-before attributing gains to more complex memory management, not to rule out
-agentic memory for other tasks or operating constraints.
-
 ## Repository Guide
 
 | Location | Contents |
@@ -147,20 +126,15 @@ not bundled. Some baselines require separate upstream checkouts or services.
 
 ## Reproduction
 
-The steps below retain the full reproduction workflow. The implementation
-uses the `rag` system name for RAW-RAG.
+RAW-RAG uses the system name `rag`.
 
 ### 1. Install
 
-From this directory:
+Python 3.12. From the repository root:
 
 ```powershell
 cd methods\EverCore
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
 python -m pip install -r requirements-eval.txt
-# Required once for the LoCoMo F1/BLEU-1 scoring used by minimal-answer profiles.
 python -m nltk.downloader punkt_tab
 ```
 
@@ -172,72 +146,24 @@ python -m pip install -r requirements-analysis.txt
 python -m pip install -r requirements-test.txt
 ```
 
-Install an additional requirements file only when reproducing the
-corresponding local baseline:
+### 2. Paper Configuration
+
+The [paper profiles](scripts/paper/README.md) specify readers, retrieval models,
+prompts, and judges for 15 main and appendix conditions, including two
+report-only non-abstention subsets. From the repository root:
 
 ```powershell
-python -m pip install -r requirements-simplemem.txt
-python -m pip install -r requirements-memora-local.txt
-```
-
-### 2. Match the Paper Configuration
-
-For RAW-RAG main results and appendix evaluation variants, use the frozen
-[paper profiles and PowerShell runner](scripts/paper/README.md).
-They cover 15 conditions (including two report-only non-abstention subsets),
-with explicit readers, retrieval models, prompts, and judges:
-
-```powershell
-# From the package root; preview only, with no file changes or model calls.
-pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group All -List
-pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group All -DryRun
-# Run the seven main conditions, or use -Group All for the appendix as well.
 pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group Main
 ```
 
-`-Group All` also runs both LoCoMo minimal-answer conditions and automatically
-reports J/F1/BLEU-1 after their answer/evaluate stages. To score an existing
-minimal run without any model calls, run from `methods/EverCore`:
+`-Group All` includes appendix conditions and LoCoMo J/F1/BLEU-1 reports.
+The runner overwrites active system, dataset, and prompt YAML files; runs in
+one checkout must be serial.
 
-```powershell
-python -m evaluation.scripts.score_locomo_lexical `
-  --run-dir evaluation/results/locomo-rag-paper-locomo-textemb3-gpt4omini-minimal `
-  --with-judge --expected-questions 1540 --expected-judgments 3
-```
-
-Repeat with `gpt41mini` for the other reader. Reports are saved as
-`lexical_metrics.json` (per-question, category and overall scores) and
-`lexical_report.txt`, without modifying saved answers or LLM judgments.
-See the [metric definitions and scoring workflow](scripts/paper/README.md#locomo-lexical-reports).
-
-Actual execution permanently replaces the active system, dataset, and prompt
-YAML files. It does not back them up, restore them, or check benchmark data.
-Run serially in one checkout. Ablations and diagnostics are outside this runner.
-The following manual instructions apply to generic runs and other systems;
-the profiles supersede them for the named RAW-RAG conditions.
-
-Before every reproduction run, first update:
-
-1. `methods/EverCore/.env`
-2. The relevant benchmark YAML file under
-   `methods/EverCore/evaluation/config/datasets`
-3. The relevant baseline/system YAML file under
-   `methods/EverCore/evaluation/config/systems`
-
-Set the API credentials, endpoints, model identifiers, prompts, chunking,
-retrieval, context-budget, and evaluator settings to the values used in the
-paper. **The configuration files currently included in this package are not
-guaranteed to represent the final configurations used for the paper.**
-Reproduction is valid only after these files have been checked and, where
-necessary, updated.
-
-Create `.env` from the template if needed:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-At minimum, configure the variables required by the selected system:
+Credentials and endpoints belong in `methods/EverCore/.env`
+([template](methods/EverCore/.env.example)). Generic CLI runs use the dataset,
+system, and prompt YAML files under `methods/EverCore/evaluation/config`.
+The main environment variables are:
 
 ```dotenv
 LLM_API_KEY=...
@@ -251,8 +177,6 @@ RERANK_BASE_URL=...
 RERANK_MODEL=...
 RERANK_ENDPOINT=...
 ```
-
-Do not commit `.env` or API keys.
 
 ### 3. Prepare Data
 
@@ -285,8 +209,7 @@ The MemoryAgentBench command follows the source selection and chunking defined
 in its YAML configuration. RAW-RAG resolves converter defaults independently
 for each source: the two fact-consolidation sources use one fact per message,
 while other sources retain raw context for token chunking in the adapter.
-Explicit converter overrides remain supported. Use the same configuration for the RAW-RAG
-ablation systems:
+The RAW-RAG ablation systems use the same dataset configuration:
 
 ```powershell
 python -m evaluation.cli --dataset memoryagentbench --system rag_atomic_facts
@@ -308,9 +231,8 @@ python -m evaluation.cli --dataset memoryagentbench --system full_context --cont
 
 ### 6. External Baselines
 
-The baseline YAML files are included, but some upstream implementations and
-services must be installed separately. Read and update the matching YAML file
-before running each baseline.
+External baselines use the corresponding YAML files under
+`evaluation/config/systems` and require their upstream implementations or services.
 
 ```powershell
 # SimpleMem
@@ -328,8 +250,7 @@ python -m pip install -r requirements-memora-local.txt
 python -m evaluation.cli --dataset locomo --system memora
 ```
 
-For local MemOS or MemoryOS, start the corresponding service from the package
-root, verify that it is ready, and then run the matching system configuration:
+With the local MemOS or MemoryOS service running:
 
 ```powershell
 python -m evaluation.cli --dataset locomo --system memos_local
@@ -353,51 +274,12 @@ python -m evaluation.speed_sequence_cli `
   --data-dir ..\..\beam\BEAM-1M
 ```
 
-Use the paper's dataset slice and system YAML configuration.
-
 ### 8. Inspect Results
 
-Results are written under `methods/EverCore/evaluation/results`. Inspect:
-
-```powershell
-Get-Content evaluation\results\<result-directory>\report.txt
-Get-Content evaluation\results\<result-directory>\eval_results.json
-```
-
-Before comparing with the paper, verify that the dataset, question count,
-reader model, embedding model, reranker, prompts, judge, context budget, and
-chunking settings match the paper. Also check that API or answer-generation
-failures were not incorrectly counted as correct answers.
-
-LongMemEval reproduction uses the EverMemOS-style judge:
-
-```powershell
-python -m evaluation.cli --dataset longmemeval --system rag
-```
-
-LongMemEval now preserves complete messages before indexing; the previous
-8,000-character loader cap is disabled. Rebuild affected runs before comparing
-results. This correction does not retroactively validate or update paper scores.
-
-Reranking is mandatory when enabled. Invalid/missing scores, duplicate indices,
-empty responses, and exhausted service retries abort the run instead of
-silently falling back to dense retrieval. An intentional embedding-only
-ablation must explicitly set `rerank.enabled: false`.
-
-Run identities cover source data, questions, model/configuration settings and
-prompts. Changed full-pipeline inputs archive stale downstream artifacts under
-`stale_artifacts/` before rebuilding. Per-conversation source fingerprints also
-protect the index. Legacy indexes must be rebuilt. The loader
-also refreshes converted dataset caches when their raw inputs or converter
-implementation change; legacy conversion caches require their original inputs
-for this one-time rebuild. A partial-stage invocation
-cannot silently adopt incompatible full-pipeline checkpoints. Answer-only
-reruns have separate identities tied to the saved evidence and reader settings.
-
-Generic judge failures are recorded in `judge_progress.json` and prevent an
-accuracy report. Retrying the same evaluation reuses successful judgments and
-retries missing ones. Changing answers, judge settings or prompts prevents
-reuse of incompatible judgments. API failures are not incorrect answers.
+Results are written under `methods/EverCore/evaluation/results`.
+Each run contains `report.txt`, `eval_results.json`, `answer_results.json`,
+and `search_results.json`. Paper-profile configuration snapshots are saved
+under `evaluation/results/paper-configs`.
 
 ## Diagnostic Experiments
 
@@ -405,22 +287,18 @@ The diagnostic entry points include
 [`build_rag_5k_intervention_runs.py`](methods/EverCore/evaluation/scripts/build_rag_5k_intervention_runs.py)
 for 5k evidence controls and
 [`run_meme_complete_store_uncapped.py`](methods/EverCore/evaluation/scripts/run_meme_complete_store_uncapped.py)
-for complete-store uncapped experiments. Inspect their command-line arguments
-and required source artifacts before running them; these are separate
-diagnostic conditions, not the default RAW-RAG evaluation.
+for complete-store uncapped experiments.
 
 ## Tests
 
-Run the audit regression suite from `methods/EverCore`, without credentials,
-benchmark downloads or model calls:
+From `methods/EverCore`:
 
 ```powershell
 python -m pip install -r requirements-test.txt
 python -m pytest tests/test_rawrag_regressions.py tests/test_diagnostic_source_manifests.py tests/test_cli_fast_path_filter.py tests/test_longmemeval_official_judge.py tests/test_build_rag_5k_intervention_runs.py tests/test_search_stage_checkpoint.py tests/test_rag_graph_expanded_raw.py tests/test_meme_complete_store_uncapped.py -q
 ```
 
-The full suite also includes external-baseline integration tests. Install the
-corresponding upstream checkouts, GPU and service dependencies before running:
+The full suite includes external-baseline integration tests:
 
 ```powershell
 python -m pytest tests -q
@@ -429,6 +307,4 @@ python -m pytest tests -q
 ## Citation
 
 This repository accompanies **"Is Complex Agentic Memory Always Needed?
-Naive RAG Is Stronger Than We Thought"**. A public paper link and complete
-BibTeX entry will be added when the author list and publication metadata are
-available.
+Naive RAG Is Stronger Than We Thought"**.

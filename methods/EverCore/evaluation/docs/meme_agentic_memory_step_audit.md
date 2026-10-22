@@ -2,7 +2,7 @@
 
 ## Research question
 
-The experiment tests whether a long agentic-memory pipeline accumulates errors. It therefore does **not** assign each question to one earliest failing stage. Every observable step is judged independently for every question. A question may fail at several steps, an upstream error may propagate, a later step may introduce a new error, and a later step may recover from an earlier error.
+The experiment measures error accumulation across agentic-memory pipelines. Each observable step is judged independently for every question, allowing multiple failures, propagation, and recovery.
 
 Each step has one of six states:
 
@@ -17,7 +17,7 @@ For adjacent observable steps, the transition is `preserved` (pass→pass), `new
 
 ## Common benchmark reference
 
-The reference state is built only from MEME's official `evidence_session_indices`, phase cutoff, entity values, target states, dependency edges, and task metadata. The judge receives the complete relevant sessions rather than a head/tail truncation of a multi-million-character conversation. Before/after semantics are evaluated at the question's official cutoff.
+The reference state uses MEME's official evidence sessions, phase cutoff, entity values, target states, dependency edges, and task metadata. The judge receives complete relevant sessions and evaluates before/after semantics at the official cutoff.
 
 ## Mem0 Local (`meme-mem0_local-normal`)
 
@@ -41,7 +41,7 @@ The reference state is built only from MEME's official `evidence_session_indices
 13. The adapter serializes those results into the reader context.
 14. The answer LLM generates the final answer.
 
-The Mem0 audit now separates original telemetry from surviving artifacts:
+Step observability:
 
 1. `write_existing_candidates_original` remains `not_observable`; the function-local top-10 list and exact prompt were never saved. `write_existing_candidates_replay` is instead `replayable` from MEME batches, batch metadata, stored vectors, and the implementation, but is not original telemetry.
 2. `raw_llm_extraction_response` and `dedup_rejected_candidates` remain `not_observable`: raw JSON, linked IDs, parse/embedding failures, and debug skip records were not persisted.
@@ -51,7 +51,7 @@ The Mem0 audit now separates original telemetry from surviving artifacts:
 6. `retrieval_components_original` remains `not_observable` because final search artifacts omit query entities, branch candidates, and `score_details`. `retrieval_components_replay` is `replayable` through the surviving dense/sparse indexes, entity graph, saved queries, and SDK `explain` path.
 7. `temporal_filter_integrity` deterministically maps every native result timestamp back to the MEME cutoff.
 
-SQLite history lacks conversation/user metadata for records whose Qdrant object is absent. Such global history→vector inconsistencies are reported in run-level audit metadata and are not falsely assigned to every question.
+History records without corresponding Qdrant objects lack conversation/user metadata; these inconsistencies are reported at run level.
 
 ## MemOS Local fine mode (`meme-memos_local-fine`)
 
@@ -62,7 +62,7 @@ SQLite history lacks conversation/user metadata for records whose Qdrant object 
 3. Each aggregate window fans out into four fine-extraction branches (string, tool, skill, and preference), while source-message transfer is performed serially. The persisted `metadata.sources` and `background` identify the shared input window for the resulting outputs.
 4. Extracted items receive key, value, tags, type, background, source-message provenance, timestamps, and embeddings.
 5. Text memories are written to Neo4j and their vectors are synchronized to Qdrant.
-6. Although the implementation has merge/archive/history fields, the normal `MultiModalStruct` merge helper used by this run returns extraction output unchanged. All 13,013 inspected fine objects were active and had no `history`, `evolve_to`, or graph relationships, so merge/archive is `not_applicable` for this run rather than an observed successful update step.
+6. The merge helper returns extraction output unchanged. All 13,013 inspected fine objects were active, with no history, evolution links, or graph relationships. Merge/archive is `not_applicable`.
 
 ### Query/read path
 
@@ -73,7 +73,7 @@ SQLite history lacks conversation/user metadata for records whose Qdrant object 
 11. The adapter serializes the results into reader context.
 12. The answer LLM generates the final answer.
 
-The native run identifies its namespace in `search_results.json` as `fine__meme_*_User`. A store audit using `normal__meme_*_User` is a different experiment and must fail validation. The step tracer now reads the live Docker artifacts directly and separates:
+The run uses the `fine__meme_*_User` namespace. Step checks use its Docker artifacts:
 
 1. `multimodal_window_provenance`: deterministic official-message identity against persisted `metadata.sources`, including overlap duplication.
 2. `multimodal_extraction_fidelity`: LLM judgment of each complete source-window-to-output group.
@@ -82,7 +82,7 @@ The native run identifies its namespace in `search_results.json` as `fine__meme_
 5. `state_invalidation_support`: task-aware LLM judgment for Del/Cas/Abs over the active store, independent of extraction fidelity.
 6. `temporal_filter_integrity`: deterministic check that every retrieved item's latest `metadata.sources[].chat_time` session is at or before the MEME cutoff.
 
-The original raw extraction response and the original intermediate hybrid, cosine-reranked, and post-MMR lists were not persisted, so they remain `not_observable`. Issuing new API searches with toggles would be a coupled counterfactual replay, not original-run telemetry, and must not be reported as direct observation.
+Raw extraction responses and intermediate hybrid, cosine-reranked, and post-MMR lists were not persisted and are `not_observable`. New searches are classified as counterfactual replays.
 
 ## EverMemOS (`meme-evermemos-normal-3`)
 
@@ -95,7 +95,7 @@ The original raw extraction response and the original intermediate hybrid, cosin
 5. Episodes and atomic facts are persisted. Episode fields and atomic facts are embedded; BM25-searchable text is built for both representations.
 6. Memory clustering also runs, but profiles and foresight are disabled. Cluster output is not consumed by the retrieval/reader path in this run, so clustering errors are side-branch errors rather than propagated answer-path errors.
 
-The saved `memcell_list_conv_*.json` makes the final write path substantially observable. For every official question the audit now checks:
+Saved memory cells support the following per-question checks:
 
 1. `memcell_message_integrity`: every official evidence message occurs exactly once in saved `original_data` (deterministic content/role/timestamp comparison).
 2. `memcell_cutoff_visibility`: evidence remains in a MemCell whose last source session is visible at the question cutoff; a Cell spanning into the future is counted as a visibility failure.

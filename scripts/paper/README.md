@@ -1,61 +1,26 @@
 # RAW-RAG paper evaluation profiles
 
-Run these commands from the package root (`supplementary_rawrag_final`).
-PowerShell 7 (`pwsh`) and the evaluation requirements are required.
-Before running the minimal-answer conditions, install the evaluation requirements
-and download the English NLTK tokenizer data once, from `methods/EverCore`:
-
-```powershell
-python -m pip install -r requirements-eval.txt
-python -m nltk.downloader punkt_tab
-```
-
-Scoring never downloads resources automatically. Missing tokenizer data stops
-the scorer with a setup command rather than silently changing tokenization.
-These profiles cover the main comparisons and appendix evaluation protocols,
-not ablations, oracle/coverage diagnostics, Full-context, other memory systems,
-budget interventions, or timing experiments.
+Profiles for the RAW-RAG main and appendix evaluations.
+Requires PowerShell 7 and the [evaluation dependencies](../../README.md#1-install).
+Runner commands use the repository root.
 
 ## Run
 
 ```powershell
-# Inspect all 15 conditions, without changing files or calling models.
-pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group All -List
-pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group All -DryRun
-
-# Seven main conditions, in dependency order.
 pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group Main
-
-# Main conditions followed by all appendix conditions.
 pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group All
-
-# Appendix only: requires the relevant Main outputs under the same Tag.
 pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group Appendix
-
-# One independent condition, a chosen Python, and a new output namespace.
-pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 `
-  -Condition locomo-textemb3-gpt4omini `
-  -Python "D:/Anaconda/envs/py312pt291cu128/python.exe" -Tag paper-v1
-
-# Multiple conditions: comma-separated string also works with pwsh -File.
 pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 `
   -Condition "locomo-textemb3-gpt4omini,locomo-textemb3-gpt4omini-minimal" `
   -Tag paper-v1
 ```
 
-No arguments selects `Main`. `-Condition` takes precedence over `-Group`.
-Selection always follows manifest order, not command-line argument order.
-Dependencies are NOT run implicitly: a standalone minimal/Flash/noabs condition
-requires its `source_condition` output under the same `Tag`. `-Group All`
-includes all producers before their consumers.
+`Main` is the default group. `-Condition` overrides `-Group`; conditions run in
+manifest order. Minimal, Flash, and non-abstention conditions require their
+`source_condition` outputs under the same `Tag`. `All` includes these dependencies.
+`-Python` selects the interpreter; `-Tag` names the experiment.
 
-**Actual execution overwrites the active YAML files permanently.** There is no
-backup, rollback, retry orchestration, data preflight, or automatic dependency
-execution. A nonzero Python exit stops the script. Do not run two profile
-scripts concurrently in the same checkout, or edit shared YAML during a run.
-The underlying CLI retains its own checkpoint/cache behavior.
-Use a new `Tag` for an independent experiment; using the same tag can reuse
-compatible artifacts through the existing CLI.
+The runner overwrites active YAML files, so runs in one checkout must be serial.
 
 The script copies:
 
@@ -64,10 +29,7 @@ The script copies:
 3. The frozen `configs/prompts.yaml` to `evaluation/config/prompts.yaml`.
 
 All destinations above are relative to `methods/EverCore`.
-Edit the **profile files**, not the active copies, to change a recipe.
-Each system YAML is complete; there is no YAML inheritance or runtime merging
-between profile files. Existing dataset/source overrides within a system YAML
-are still handled by the unchanged CLI.
+Recipes are defined in the profile files; each system YAML is self-contained.
 
 ## Conditions
 
@@ -97,17 +59,13 @@ units atomic. MEME displays selected evidence chronologically.
 | personamem-v2-qwen3-gpt41mini | GPT-4.1-mini | Exact-match multiple choice | Full pipeline |
 
 `conditions.json` maps each condition to paper table labels, expected question
-counts, and reference scores. These are annotations, not values injected into
-reports or runtime data checks. Main/appendix entries referring to the same
-run are not duplicated.
+counts, and reference scores.
 
 ## Services and credentials
 
-Keep credentials and endpoint routing in `methods/EverCore/.env` or the process
-environment. The existing CLI loads `.env`. Profile model identifiers are
-literal YAML values: `LLM_MODEL`, `VECTORIZE_MODEL`, `RERANK_MODEL`,
-`EVALUATE_MODEL`, `MEME_EVALUATE_MODEL`, and
-`MEMORYAGENTBENCH_EVALUATE_MODEL` do not select these profile models.
+Credentials and endpoints are read from `methods/EverCore/.env` or the process
+environment. Profile model identifiers are set in YAML, not model environment
+variables.
 
 ```dotenv
 # OpenAI-compatible GPT readers and judges.
@@ -133,56 +91,22 @@ QWEN_RERANK_BASE_URL=...
 QWEN_RERANK_ENDPOINT=/v1/rerank
 ```
 
-Qwen services must serve the named **4B** checkpoints. The existing RAG adapter
-applies the Qwen3 reranker instruction/template based on its model name.
-No service installation or availability check is performed.
-If a gateway requires prefixes such as `openai/text-embedding-3-small` or
-`cohere/rerank-v3.5`, edit those literal model values in the profile YAML.
-Record that change; do not silently replace the model with another checkpoint.
-Endpoint defaults are routing examples, not proof of historical provider
-identity or current service availability.
+Qwen profiles use the 4B embedding and reranker checkpoints.
+MEME judge repetitions are set by `evaluation.num_runs` in the profile YAML.
+For PersonaMem-v2, `search.personamem_raw_query` selects the raw user request
+for retrieval; the reader receives the personalization reminder and options.
+The runner sets `PYTHONHASHSEED=0` for repeatable PersonaMem-v2 option shuffling
+on new conversions. Existing converted data retains its option order.
 
-For MEME, the script reads `evaluation.num_runs` from the selected YAML and
-sets `MEME_JUDGE_NUM_RUNS` for the child processes. This neutralizes any stale
-value in the invoking environment or `.env`; the YAML remains authoritative.
-For PersonaMem-v2, the optional `search.personamem_raw_query` flag uses the
-converter's saved raw user request only for retrieval, preserving the
-personalization reminder and multiple-choice options in the reader input.
-Other configurations keep the original search behavior.
-
-## Outputs and limits
+## Outputs
 
 Results use `evaluation/results/<dataset>-rag-<Tag>-<condition>`.
 MAB adds `<split>-<sanitized-source>` before `<Tag>`.
-Flash/minimal runs copy only `search_results.json`, never original answers,
-judgments or checkpoints.
+Flash/minimal runs reuse `search_results.json` and generate new answers.
 Configuration snapshots and SHA-256 hashes are saved under
 `evaluation/results/paper-configs/<Tag>-<condition>/`.
 The same directory holds `mab_accuracy.txt` or `non_abstention.json` where
-applicable. Credentials and resolved `.env` contents are not copied.
-The CLI's own public run identity records resolved execution settings.
-
-These profiles reconstruct the stated protocols on the supplied implementation;
-they do not guarantee equality with historical scores:
-
-- MEME judge models/counts were checked against the local result metadata
-  underlying 39.30 and 43.19. MAB judge identities were checked against the
-  original GPT-4o-mini and Flash result metadata. They intentionally differ
-  from the generic dataset defaults and earlier audit command examples.
-- The two minimal conditions automatically run offline J/F1/BLEU-1 reporting
-  after answer/evaluate; see the scoring command below.
-- PersonaMem-v2 option shuffling uses Python's string hash. The runner fixes
-  `PYTHONHASHSEED=0` for repeatable **new conversions**, recorded in the manifest
-  and snapshots. The historical hash seed is not established; existing
-  converted caches retain their option order. For identical option letters
-  across machines, distribute the same converted data. The script does not
-  remove or rewrite dataset caches.
-- LongMemEval uses the corrected, uncapped source-message loader. Historical
-  model aliases, provider changes, conversion inputs, and implementation
-  corrections can change scores.
-- Prompt YAML is frozen here; code-defined MEME/MAB judge and query templates
-  still require a fixed code revision. This mechanism does not freeze services,
-  raw datasets, or the whole Python environment.
+applicable.
 
 ## Lexical Scoring
 
@@ -200,36 +124,23 @@ scores zero. BLEU-1 uses lowercased English `nltk.word_tokenize`, unigram
 weights `(1,0,0,0)`, method-1 smoothing and the sentence-level brevity penalty;
 it averages sentence scores, not corpus BLEU. J averages the three saved
 boolean judgments per question. The saved `answer` is scored as-is, without
-extracting another final answer or calling any models.
+extracting another final answer.
 
-To score existing outputs without regenerating answers, run from
-`methods/EverCore` (replace `paper` if a different Tag was used):
+To score saved answers, from `methods/EverCore`:
 
 ```powershell
-foreach ($reader in @("gpt4omini", "gpt41mini")) {
-    python -m evaluation.scripts.score_locomo_lexical `
-      --run-dir "evaluation/results/locomo-rag-paper-locomo-textemb3-$reader-minimal" `
-      --with-judge --expected-questions 1540 --expected-judgments 3
-    if ($LASTEXITCODE -ne 0) { throw "LoCoMo scoring failed: $reader" }
-}
+python -m evaluation.scripts.score_locomo_lexical `
+  --run-dir evaluation/results/locomo-rag-paper-locomo-textemb3-gpt4omini-minimal `
+  --with-judge --expected-questions 1540 --expected-judgments 3
 ```
 
-The same command accepts a standard-answer result directory. Without
-`--with-judge`, only F1/BLEU-1 are computed and `eval_results.json` is not needed.
-Without `--expected-questions`, subsets are allowed and their counts are reported.
-Paper-runner scoring requires 1,540 questions and three complete judgments each.
-Duplicate IDs, invalid categories, saved generation-error responses, or
-judgments for different answers/references are rejected. Existing answer,
-evaluation and `report.txt` files are not changed.
+`--with-judge` includes J alongside F1/BLEU-1. Paper profiles score 1,540
+questions with three judgments each.
 
 ## Offline tests
 
-From `methods/EverCore`, with evaluation dependencies and pytest installed:
+From `methods/EverCore`:
 
 ```powershell
 python -m pytest tests/test_paper_profiles.py tests/test_score_locomo_lexical.py -q -p no:cacheprovider
 ```
-
-The tests execute the PowerShell runner against a temporary package with a
-fake evaluation CLI. They do not replace the real active YAML, read benchmark
-data, or call model services.
