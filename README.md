@@ -58,8 +58,7 @@ RAW-RAG uses a fixed **build, retrieve, rerank, read** pipeline:
    which resolves relevant temporal order and state changes.
 
 Ingestion preserves raw text without LLM-based extraction or summarization.
-The retrieval parameters are configurable; $k$ counts evidence items, not
-tokens. Benchmark-specific settings are listed in the
+Benchmark-specific settings are listed in the
 [paper profiles](scripts/paper/README.md).
 
 ## Evaluation Results
@@ -87,9 +86,8 @@ PersonaMem-v2 is evaluated in the appendix.
   <img width="100%" src="assets/teaser_results.png" alt="Paper overview: accuracy in seven benchmark-model settings and sequential BEAM-1M ingestion time">
 </p>
 
-*The overview figure shows selected comparators and uses sector-wise truncated
-scales for accuracy. The table above includes the strongest compared memory
-system in each setting.*
+*The overview shows selected comparators, with sector-wise truncated accuracy
+scales.*
 
 **Efficiency.** On the paper's 10-episode, 110-question MEME timing experiment,
 RAW-RAG takes 50.32 seconds for add-to-ready and 255.59 seconds for search,
@@ -122,14 +120,9 @@ The figure also reports cumulative sequential ingestion on BEAM-1M.
 | [`scripts`](scripts) | Setup helpers for selected external baselines |
 | [`assets`](assets) | Paper figures used in this README |
 
-Benchmark data, credentials, generated indexes, and experiment outputs are
-not bundled. Some baselines require separate upstream checkouts or services.
-
 ## Reproduction
 
-RAW-RAG uses the system name `rag`. Complete the setup and data preparation
-below before running the seven main paper conditions. Commands in steps 1-5
-use the repository root as the working directory.
+Commands in steps 1-5 run from the repository root.
 
 ### 1. Install
 
@@ -140,8 +133,7 @@ python -m pip install -r methods/EverCore/requirements-eval.txt
 python -m nltk.downloader punkt_tab
 ```
 
-`requirements-eval.txt` covers RAW-RAG, its benchmark preparation, reader and
-judges. Analysis and offline tests have separate dependency sets:
+For analysis and tests:
 
 ```powershell
 python -m pip install -r methods/EverCore/requirements-analysis.txt
@@ -151,7 +143,7 @@ python -m pip install -r methods/EverCore/requirements-test.txt
 ### 2. Configure Services
 
 Create `methods/EverCore/.env` from the
-[template](methods/EverCore/.env.example) if it does not already exist:
+[template](methods/EverCore/.env.example):
 
 ```powershell
 if (-not (Test-Path methods/EverCore/.env)) {
@@ -159,9 +151,7 @@ if (-not (Test-Path methods/EverCore/.env)) {
 }
 ```
 
-Fill in credentials and set the endpoints for the main conditions.
-Replace the template's blank endpoint values and its `/rerank` path with
-the matching values below, or with those of your compatible services:
+Set credentials and service endpoints:
 
 ```dotenv
 LLM_API_KEY=...
@@ -175,16 +165,13 @@ DEEPSEEK_API_KEY=...
 DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
 ```
 
-The [paper profiles](scripts/paper/README.md) select the reader, embedding,
-reranker, prompts, and judges automatically; model environment variables such
-as `LLM_MODEL` do not override these frozen profiles. Flash readers use
-`DEEPSEEK_*`, while their judges continue to use `LLM_*`.
+The [paper profiles](scripts/paper/README.md) specify models and prompts.
+DeepSeek readers use `DEEPSEEK_*`; GPT readers and judges use `LLM_*`.
 
 ### 3. Prepare Data
 
-Place the main benchmark files under `methods/EverCore/evaluation/data`.
-MemoryAgentBench is downloaded and converted automatically on first use,
-so its initial run requires access to Hugging Face:
+Place benchmark files under `methods/EverCore/evaluation/data`.
+MemoryAgentBench is downloaded automatically:
 
 | Benchmark | File or preparation | Expected questions |
 | --- | --- | ---: |
@@ -192,13 +179,6 @@ so its initial run requires access to Hugging Face:
 | LongMemEval-S | `longmemeval/longmemeval_s_cleaned.json` | 500 |
 | MEME | `meme/meme_filler32k.json` | 1,188 from 100 episodes |
 | MemoryAgentBench | Automatically cached under `memoryagentbench/` for 14 sources | 2,071 |
-
-The dataset YAML files define conversions and benchmark-specific settings.
-RAW-RAG resolves MemoryAgentBench converter defaults independently for each
-source: the two fact-consolidation sources use one fact per message, while
-other sources retain raw context for token chunking in the adapter. The
-10,000,000-character message limit covers the complete main benchmark contexts,
-including ReDial's roughly 5.7-million-character serialized message.
 
 ### 4. Run the Main Experiments
 
@@ -209,32 +189,23 @@ pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group Main -List
 pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group Main -Tag paper
 ```
 
-The runner selects each condition's configuration and executes it in order.
-The Flash conditions reuse retrieval from their matching GPT-4o-mini runs.
-Runs in one checkout must be serial because the runner overwrites active
-system, dataset, and prompt YAML files.
-
-Use a new `-Tag`, such as `paper-v2`, when regenerating results after data or
-configuration changes. In particular, rerun both MAB main conditions to replace
-retrieval previously built with the old 2,000,000-character limit.
+`-Tag` names the experiment. Run experiments sequentially within one checkout.
 
 ### 5. Inspect Results
 
 Results are written under `methods/EverCore/evaluation/results`.
 Each run contains `report.txt`, `eval_results.json`, `answer_results.json`,
-and `search_results.json`. Paper-profile configuration snapshots are saved
-under `evaluation/results/paper-configs`. MAB runs produce separate results
-for all 14 sources and a `mab_accuracy.txt` aggregate in the corresponding
-configuration snapshot directory.
+and `search_results.json`. MemoryAgentBench aggregate scores are saved as
+`mab_accuracy.txt` under `evaluation/results/paper-configs/<Tag>-<condition>/`.
 
 ### Optional: Appendix Conditions
 
-`-Group All` includes Main and the appendix conditions, including LoCoMo
-J/F1/BLEU-1 reports. It is an alternative to Main, not a required next step.
-Before running it, configure the Qwen services described in the
-[paper profiles](scripts/paper/README.md) and add the PersonaMem-v2 files under
-`evaluation/data`: `personamem_v2/benchmark/text/benchmark.csv` and
-`personamem_v2/data/chat_history_32k/*.json`.
+`-Group All` runs the main and appendix conditions, including LoCoMo J/F1/BLEU-1
+reports. Configure the Qwen services in the [paper profiles](scripts/paper/README.md)
+and add these PersonaMem-v2 files under `methods/EverCore/evaluation/data`:
+
+- `personamem_v2/benchmark/text/benchmark.csv`
+- `personamem_v2/data/chat_history_32k/*.json`
 
 ```powershell
 pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group All -Tag paper-all
@@ -242,13 +213,9 @@ pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group All -Tag paper-all
 
 ## Custom Runs
 
-The generic CLI commands below are alternatives for manually configured runs,
-not additional steps after Main. First configure the active dataset, system,
-and prompt YAML files under `methods/EverCore/evaluation/config`.
-After Main, the active `rag.yaml` remains the Flash profile; running these
-commands unchanged would retain that reader even for LoCoMo or LongMemEval.
-
-Run from `methods/EverCore`:
+For custom runs, set the dataset, models, and prompts under
+`methods/EverCore/evaluation/config`, then run from `methods/EverCore`.
+RAW-RAG uses the system name `rag`:
 
 ```powershell
 python -m evaluation.cli --dataset locomo --system rag
@@ -258,7 +225,7 @@ python -m evaluation.cli --dataset personamem_v2 --system rag
 python -m evaluation.cli --dataset memoryagentbench --system rag
 ```
 
-The RAW-RAG ablation systems use the same dataset configuration:
+MemoryAgentBench ablations:
 
 ```powershell
 python -m evaluation.cli --dataset memoryagentbench --system rag_atomic_facts
@@ -268,9 +235,8 @@ python -m evaluation.cli --dataset memoryagentbench --system rag_graph_expanded_
 
 ## Timing Experiment
 
-The sequential BEAM-1M ingestion experiment is separate from the main accuracy
-runs. Prepare its ordered conversations and select the intended RAW-RAG
-configuration first. Run from `methods/EverCore`:
+For sequential BEAM-1M ingestion timing, prepare the conversations, configure
+RAW-RAG, and run from `methods/EverCore`:
 
 ```powershell
 python -m evaluation.scripts.convert_beam_1m_sequence
