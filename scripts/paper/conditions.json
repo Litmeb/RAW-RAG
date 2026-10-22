@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "python_hash_seed": "0",
+  "mab_sources": [
+    {"split": "Accurate_Retrieval", "source": "eventqa_full"},
+    {"split": "Accurate_Retrieval", "source": "longmemeval_s*"},
+    {"split": "Accurate_Retrieval", "source": "ruler_qa1_197K"},
+    {"split": "Accurate_Retrieval", "source": "ruler_qa2_421K"},
+    {"split": "Test_Time_Learning", "source": "recsys_redial_full"},
+    {"split": "Test_Time_Learning", "source": "icl_banking77_5900shot_balance"},
+    {"split": "Test_Time_Learning", "source": "icl_clinic150_7050shot_balance"},
+    {"split": "Test_Time_Learning", "source": "icl_nlu_8296shot_balance"},
+    {"split": "Test_Time_Learning", "source": "icl_trec_coarse_6600shot_balance"},
+    {"split": "Test_Time_Learning", "source": "icl_trec_fine_6400shot_balance"},
+    {"split": "Long_Range_Understanding", "source": "detective_qa"},
+    {"split": "Long_Range_Understanding", "source": "infbench_sum_eng_shots2"},
+    {"split": "Conflict_Resolution", "source": "factconsolidation_mh_262k"},
+    {"split": "Conflict_Resolution", "source": "factconsolidation_sh_262k"}
+  ],
+  "conditions": [
+    {
+      "id": "locomo-textemb3-gpt4omini", "group": "Main", "dataset": "locomo",
+      "system_config": "textemb3-gpt4omini", "dataset_config": "locomo",
+      "mode": "pipeline", "source_condition": null,
+      "expected_questions": 1540, "reported_score": 89.07,
+      "paper_labels": ["tab:main", "tab:locomo-openai-protocol"]
+    },
+    {
+      "id": "locomo-textemb3-gpt41mini", "group": "Main", "dataset": "locomo",
+      "system_config": "textemb3-gpt41mini", "dataset_config": "locomo",
+      "mode": "pipeline", "source_condition": null,
+      "expected_questions": 1540, "reported_score": 93.70,
+      "paper_labels": ["tab:main", "tab:locomo-openai-protocol"]
+    },
+    {
+      "id": "longmemeval-textemb3-gpt41mini", "group": "Main", "dataset": "longmemeval",
+      "system_config": "textemb3-gpt41mini", "dataset_config": "longmemeval",
+      "mode": "pipeline", "source_condition": null,
+      "expected_questions": 500, "reported_score": 87.53,
+      "paper_labels": ["tab:main", "tab:longmemeval-openai-protocol"]
+    },
+    {
+      "id": "meme-textemb3-gpt4omini", "group": "Main", "dataset": "meme",
+      "system_config": "textemb3-gpt4omini", "dataset_config": "meme-gpt4omini",
+      "mode": "pipeline", "source_condition": null,
+      "expected_questions": 1188, "reported_score": 39.30,
+      "paper_labels": ["tab:main-other"]
+    },
+    {
+      "id": "meme-textemb3-flash", "group": "Main", "dataset": "meme",
+      "system_config": "textemb3-flash", "dataset_config": "meme-flash",
+      "mode": "answer_only", "source_condition": "meme-textemb3-gpt4omini",
+      "expected_questions": 1188, "reported_score": 43.19,
+      "paper_labels": ["tab:main-other"]
+    },
+    {
+      "id": "mab-textemb3-gpt4omini", "group": "Main", "dataset": "memoryagentbench",
+      "system_config": "textemb3-gpt4omini", "dataset_config": "mab-gpt4omini",
+      "mode": "pipeline", "source_condition": null,
+      "expected_questions": 2071, "reported_score": 48.32,
+      "paper_labels": ["tab:main-other"]
+    },
+    {
+      "id": "mab-textemb3-flash", "group": "Main", "dataset": "memoryagentbench",
+      "system_config": "textemb3-flash", "dataset_config": "mab-flash",
+      "mode": "answer_only", "source_condition": "mab-textemb3-gpt4omini",
+      "expected_questions": 2071, "reported_score": 53.41,
+      "paper_labels": ["tab:main-other"]
+    },
+    {
+      "id": "locomo-qwen3-gpt4omini", "group": "Appendix", "dataset": "locomo",
+      "system_config": "qwen3-gpt4omini", "dataset_config": "locomo",
+      "mode": "pipeline", "source_condition": null,
+      "expected_questions": 1540, "reported_score": 89.13,
+      "paper_labels": ["tab:locomo-qwen-protocol"]
+    },
+    {
+      "id": "locomo-qwen3-gpt41mini", "group": "Appendix", "dataset": "locomo",
+      "system_config": "qwen3-gpt41mini", "dataset_config": "locomo",
+      "mode": "pipeline", "source_condition": null,
+      "expected_questions": 1540, "reported_score": 94.55,
+      "paper_labels": ["tab:locomo-qwen-protocol"]
+    },
+    {
+      "id": "longmemeval-qwen3-gpt41mini", "group": "Appendix", "dataset": "longmemeval",
+      "system_config": "qwen3-gpt41mini", "dataset_config": "longmemeval",
+      "mode": "pipeline", "source_condition": null,
+      "expected_questions": 500, "reported_score": 89.93,
+      "paper_labels": ["tab:longmemeval-qwen-protocol"]
+    },
+    {
+      "id": "locomo-textemb3-gpt4omini-minimal", "group": "Appendix", "dataset": "locomo",
+      "system_config": "textemb3-gpt4omini-minimal", "dataset_config": "locomo",
+      "mode": "answer_only", "source_condition": "locomo-textemb3-gpt4omini",
+      "expected_questions": 1540, "reported_score": 85.78,
+      "paper_labels": ["tab:locomo-mem0-overall", "tab:locomo-mem0-categories"]
+    },
+    {
+      "id": "locomo-textemb3-gpt41mini-minimal", "group": "Appendix", "dataset": "locomo",
+      "system_config": "textemb3-gpt41mini-minimal", "dataset_config": "locomo",
+      "mode": "answer_only", "source_condition": "locomo-textemb3-gpt41mini",
+      "expected_questions": 1540, "reported_score": 90.87,
+      "paper_labels": ["tab:locomo-mem0-overall", "tab:locomo-nemori-categories"]
+    },
+    {
+      "id": "longmemeval-textemb3-gpt41mini-noabs", "group": "Appendix", "dataset": "longmemeval",
+      "system_config": "textemb3-gpt41mini", "dataset_config": "longmemeval",
+      "mode": "noabs", "source_condition": "longmemeval-textemb3-gpt41mini",
+      "expected_questions": 470, "reported_score": 87.80,
+      "paper_labels": ["tab:longmemeval-no-abs"]
+    },
+    {
+      "id": "longmemeval-qwen3-gpt41mini-noabs", "group": "Appendix", "dataset": "longmemeval",
+      "system_config": "qwen3-gpt41mini", "dataset_config": "longmemeval",
+      "mode": "noabs", "source_condition": "longmemeval-qwen3-gpt41mini",
+      "expected_questions": 470, "reported_score": 90.57,
+      "paper_labels": ["tab:longmemeval-no-abs"]
+    },
+    {
+      "id": "personamem-v2-qwen3-gpt41mini", "group": "Appendix", "dataset": "personamem_v2",
+      "system_config": "qwen3-gpt41mini", "dataset_config": "personamem_v2",
+      "mode": "pipeline", "source_condition": null,
+      "expected_questions": 5000, "reported_score": 49.62,
+      "paper_labels": ["tab:personamem-v2"]
+    }
+  ]
+}

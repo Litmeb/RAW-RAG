@@ -9,7 +9,8 @@ memory_language: "en"
 data:
   path: "memoryagentbench"
   format: "memoryagentbench"
-  max_content_length: 2000000
+  # Preserve full MAB contexts, including ReDial's roughly 5.7M-character message.
+  max_content_length: 10000000
 
 evaluation:
   type: "memoryagentbench"

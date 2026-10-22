@@ -36,6 +36,7 @@ methods/EverCore/methods/EverCore/evaluation/data/memoryagentbench/Long_Range_Un
 methods/EverCore/methods/EverCore/evaluation/data/memoryagentbench/Long_Range_Understanding/detective_qa/manifest.json
 methods/EverCore/evaluation/data/memoryagentbench/Accurate_Retrieval/eventqa_full/manifest.json
 *.json
+!scripts/paper/conditions.json
 methods/EverCore/evaluation/analysis/evidence_answerability/sample_metrics.csv
 methods/EverCore/evaluation/analysis/evidence_answerability/summary_by_group.csv
 methods/EverCore/evaluation/analysis/evidence_answerability/summary_by_system.csv

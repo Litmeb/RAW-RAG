@@ -12,7 +12,11 @@ import pytest
 import yaml
 
 from evaluation.src.core.data_models import QAPair
+from evaluation.src.core.loaders import load_locomo_dataset
 from evaluation.src.core.stages.search_stage import _build_search_query
+from evaluation.src.converters.memoryagentbench_converter import (
+    convert_memoryagentbench_to_locomo_style,
+)
 from evaluation.src.utils.config import load_yaml
 
 
@@ -102,6 +106,35 @@ def test_judges_and_specialized_profiles():
     assert qwen["embedding"]["model"] == "Qwen/Qwen3-Embedding-4B"
     assert qwen["rerank"]["model"] == "Qwen/Qwen3-Reranker-4B"
     assert qwen["dataset_overrides"]["personamem_v2"]["search"]["personamem_raw_query"]
+
+
+@pytest.mark.parametrize("config_path", [
+    PAPER / "configs/datasets/mab-gpt4omini.yaml",
+    PAPER / "configs/datasets/mab-flash.yaml",
+    EVERCORE / "evaluation/config/datasets/memoryagentbench.yaml",
+], ids=["gpt4omini", "flash", "default"])
+def test_mab_configuration_preserves_long_raw_context(config_path, tmp_path):
+    config = load_yaml(str(config_path))
+    limit = config["data"]["max_content_length"]
+    assert limit == 10_000_000
+    # Exceed the longest observed main-benchmark message, including its wrapper.
+    context = "a" * 6_000_000 + "\nEvidence at the end must survive."
+    converted = convert_memoryagentbench_to_locomo_style(
+        [{"context": context, "questions": ["What is at the end?"],
+          "answers": [["Evidence"]], "metadata": {"source": "recsys_redial_full"}}],
+        split_name="Test_Time_Learning",
+        official_chunking=False,
+        chunk_strategy="none",
+    )
+    path = tmp_path / "mab.json"
+    path.write_text(json.dumps(converted), encoding="utf-8")
+    dataset = load_locomo_dataset(
+        str(path), dataset_name="memoryagentbench", max_content_length=limit,
+    )
+    expected = converted[0]["conversation"]["session_0"][0]["text"]
+    assert len(dataset.conversations[0].messages) == 1
+    assert dataset.conversations[0].messages[0].content == expected
+    assert context in dataset.conversations[0].messages[0].content
 
 
 def test_minimal_changes_only_reader_prompt():

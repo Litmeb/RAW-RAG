@@ -5,7 +5,8 @@ Needed? Naive RAG Is Stronger Than We Thought"**.
 
 **[Introduction](#introduction) | [Framework](#framework) |
 [Results](#evaluation-results) | [Analysis](#what-explains-the-results) |
-[Reproduction](#reproduction) | [Citation](#citation)**
+[Reproduction](#reproduction) |
+[Citation](#citation)**
 
 ## Introduction
 
@@ -126,15 +127,16 @@ not bundled. Some baselines require separate upstream checkouts or services.
 
 ## Reproduction
 
-RAW-RAG uses the system name `rag`.
+RAW-RAG uses the system name `rag`. Complete the setup and data preparation
+below before running the seven main paper conditions. Commands in steps 1-5
+use the repository root as the working directory.
 
 ### 1. Install
 
-Python 3.12. From the repository root:
+Use Python 3.12 and PowerShell 7 (`pwsh`):
 
 ```powershell
-cd methods\EverCore
-python -m pip install -r requirements-eval.txt
+python -m pip install -r methods/EverCore/requirements-eval.txt
 python -m nltk.downloader punkt_tab
 ```
 
@@ -142,58 +144,109 @@ python -m nltk.downloader punkt_tab
 judges. Analysis and offline tests have separate dependency sets:
 
 ```powershell
-python -m pip install -r requirements-analysis.txt
-python -m pip install -r requirements-test.txt
+python -m pip install -r methods/EverCore/requirements-analysis.txt
+python -m pip install -r methods/EverCore/requirements-test.txt
 ```
 
-### 2. Paper Configuration
+### 2. Configure Services
 
-The [paper profiles](scripts/paper/README.md) specify readers, retrieval models,
-prompts, and judges for 15 main and appendix conditions, including two
-report-only non-abstention subsets. From the repository root:
+Create `methods/EverCore/.env` from the
+[template](methods/EverCore/.env.example) if it does not already exist:
 
 ```powershell
-pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group Main
+if (-not (Test-Path methods/EverCore/.env)) {
+  Copy-Item methods/EverCore/.env.example methods/EverCore/.env
+}
 ```
 
-`-Group All` includes appendix conditions and LoCoMo J/F1/BLEU-1 reports.
-The runner overwrites active system, dataset, and prompt YAML files; runs in
-one checkout must be serial.
-
-Credentials and endpoints belong in `methods/EverCore/.env`
-([template](methods/EverCore/.env.example)). Generic CLI runs use the dataset,
-system, and prompt YAML files under `methods/EverCore/evaluation/config`.
-The main environment variables are:
+Fill in credentials and set the endpoints for the main conditions.
+Replace the template's blank endpoint values and its `/rerank` path with
+the matching values below, or with those of your compatible services:
 
 ```dotenv
 LLM_API_KEY=...
-LLM_BASE_URL=...
-LLM_MODEL=...
+LLM_BASE_URL=https://api.openai.com/v1
 VECTORIZE_API_KEY=...
-VECTORIZE_BASE_URL=...
-VECTORIZE_MODEL=...
+VECTORIZE_BASE_URL=https://api.openai.com/v1
 RERANK_API_KEY=...
-RERANK_BASE_URL=...
-RERANK_MODEL=...
-RERANK_ENDPOINT=...
+RERANK_BASE_URL=https://api.cohere.com
+RERANK_ENDPOINT=/v2/rerank
+DEEPSEEK_API_KEY=...
+DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
 ```
+
+The [paper profiles](scripts/paper/README.md) select the reader, embedding,
+reranker, prompts, and judges automatically; model environment variables such
+as `LLM_MODEL` do not override these frozen profiles. Flash readers use
+`DEEPSEEK_*`, while their judges continue to use `LLM_*`.
 
 ### 3. Prepare Data
 
-Place the benchmark files under `methods/EverCore/evaluation/data`:
+Place the main benchmark files under `methods/EverCore/evaluation/data`.
+MemoryAgentBench is downloaded and converted automatically on first use,
+so its initial run requires access to Hugging Face:
 
-| Benchmark | File or directory |
-| --- | --- |
-| LoCoMo | `locomo/locomo10.json` |
-| LongMemEval-S | `longmemeval/longmemeval_s_cleaned.json` |
-| MEME | `meme/meme_filler32k.json` |
-| PersonaMem-v2 | `personamem_v2/benchmark/text/benchmark.csv` and `personamem_v2/data/chat_history_32k/*.json` |
-| MemoryAgentBench | Source files required by the selected dataset configuration |
-| BEAM-1M | Ordered conversations required by the timing experiment |
+| Benchmark | File or preparation | Expected questions |
+| --- | --- | ---: |
+| LoCoMo | `locomo/locomo10.json` | 1,540 non-adversarial |
+| LongMemEval-S | `longmemeval/longmemeval_s_cleaned.json` | 500 |
+| MEME | `meme/meme_filler32k.json` | 1,188 from 100 episodes |
+| MemoryAgentBench | Automatically cached under `memoryagentbench/` for 14 sources | 2,071 |
 
 The dataset YAML files define conversions and benchmark-specific settings.
+RAW-RAG resolves MemoryAgentBench converter defaults independently for each
+source: the two fact-consolidation sources use one fact per message, while
+other sources retain raw context for token chunking in the adapter. The
+10,000,000-character message limit covers the complete main benchmark contexts,
+including ReDial's roughly 5.7-million-character serialized message.
 
-### 4. Reproduce RAW-RAG
+### 4. Run the Main Experiments
+
+Preview the seven main conditions, then run them:
+
+```powershell
+pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group Main -List
+pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group Main -Tag paper
+```
+
+The runner selects each condition's configuration and executes it in order.
+The Flash conditions reuse retrieval from their matching GPT-4o-mini runs.
+Runs in one checkout must be serial because the runner overwrites active
+system, dataset, and prompt YAML files.
+
+Use a new `-Tag`, such as `paper-v2`, when regenerating results after data or
+configuration changes. In particular, rerun both MAB main conditions to replace
+retrieval previously built with the old 2,000,000-character limit.
+
+### 5. Inspect Results
+
+Results are written under `methods/EverCore/evaluation/results`.
+Each run contains `report.txt`, `eval_results.json`, `answer_results.json`,
+and `search_results.json`. Paper-profile configuration snapshots are saved
+under `evaluation/results/paper-configs`. MAB runs produce separate results
+for all 14 sources and a `mab_accuracy.txt` aggregate in the corresponding
+configuration snapshot directory.
+
+### Optional: Appendix Conditions
+
+`-Group All` includes Main and the appendix conditions, including LoCoMo
+J/F1/BLEU-1 reports. It is an alternative to Main, not a required next step.
+Before running it, configure the Qwen services described in the
+[paper profiles](scripts/paper/README.md) and add the PersonaMem-v2 files under
+`evaluation/data`: `personamem_v2/benchmark/text/benchmark.csv` and
+`personamem_v2/data/chat_history_32k/*.json`.
+
+```powershell
+pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group All -Tag paper-all
+```
+
+## Custom Runs
+
+The generic CLI commands below are alternatives for manually configured runs,
+not additional steps after Main. First configure the active dataset, system,
+and prompt YAML files under `methods/EverCore/evaluation/config`.
+After Main, the active `rag.yaml` remains the Flash profile; running these
+commands unchanged would retain that reader even for LoCoMo or LongMemEval.
 
 Run from `methods/EverCore`:
 
@@ -205,10 +258,6 @@ python -m evaluation.cli --dataset personamem_v2 --system rag
 python -m evaluation.cli --dataset memoryagentbench --system rag
 ```
 
-The MemoryAgentBench command follows the source selection and chunking defined
-in its YAML configuration. RAW-RAG resolves converter defaults independently
-for each source: the two fact-consolidation sources use one fact per message,
-while other sources retain raw context for token chunking in the adapter.
 The RAW-RAG ablation systems use the same dataset configuration:
 
 ```powershell
@@ -217,54 +266,11 @@ python -m evaluation.cli --dataset memoryagentbench --system rag_raw_summary
 python -m evaluation.cli --dataset memoryagentbench --system rag_graph_expanded_raw
 ```
 
-### 5. Reproduce Full-Context Controls
+## Timing Experiment
 
-Configure `evaluation/config/systems/full_context.yaml` to match the paper,
-then run:
-
-```powershell
-python -m evaluation.cli --dataset locomo --system full_context --context-window 128000
-python -m evaluation.cli --dataset meme --system full_context --context-window 128000
-python -m evaluation.cli --dataset longmemeval --system full_context --context-window 128000
-python -m evaluation.cli --dataset memoryagentbench --system full_context --context-window 128000
-```
-
-### 6. External Baselines
-
-External baselines use the corresponding YAML files under
-`evaluation/config/systems` and require their upstream implementations or services.
-
-```powershell
-# SimpleMem
-cd ..\..
-.\scripts\simplemem\fetch_simplemem.ps1
-cd methods\EverCore
-python -m pip install -r requirements-simplemem.txt
-python -m evaluation.cli --dataset locomo --system simplemem
-
-# Memora
-cd ..\..
-.\scripts\memora\fetch_memora.ps1
-cd methods\EverCore
-python -m pip install -r requirements-memora-local.txt
-python -m evaluation.cli --dataset locomo --system memora
-```
-
-With the local MemOS or MemoryOS service running:
-
-```powershell
-python -m evaluation.cli --dataset locomo --system memos_local
-python -m evaluation.cli --dataset memoryagentbench --system memoryos_local
-```
-
-Other systems are selected with their corresponding names in
-`evaluation/config/systems`, including `mem0`, `mem0_local`, `emem`, `emem_g`,
-`memmachine`, `memu`, `memu_local`, `memos`, `evermemos`, and
-`evermemos_local_api`.
-
-### 7. Timing Experiment
-
-For the sequential BEAM-1M ingestion experiment:
+The sequential BEAM-1M ingestion experiment is separate from the main accuracy
+runs. Prepare its ordered conversations and select the intended RAW-RAG
+configuration first. Run from `methods/EverCore`:
 
 ```powershell
 python -m evaluation.scripts.convert_beam_1m_sequence
@@ -273,13 +279,6 @@ python -m evaluation.speed_sequence_cli `
   --run-name paper-beam-1m `
   --data-dir ..\..\beam\BEAM-1M
 ```
-
-### 8. Inspect Results
-
-Results are written under `methods/EverCore/evaluation/results`.
-Each run contains `report.txt`, `eval_results.json`, `answer_results.json`,
-and `search_results.json`. Paper-profile configuration snapshots are saved
-under `evaluation/results/paper-configs`.
 
 ## Diagnostic Experiments
 

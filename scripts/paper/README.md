@@ -2,7 +2,10 @@
 
 Profiles for the RAW-RAG main and appendix evaluations.
 Requires PowerShell 7 and the [evaluation dependencies](../../README.md#1-install).
-Runner commands use the repository root.
+Configure [services](#services-and-credentials) and
+[prepare the benchmark data](../../README.md#3-prepare-data) before running.
+Runner commands use the repository root. The commands below are alternatives;
+`All` already includes `Main`.
 
 ## Run
 
@@ -38,7 +41,9 @@ Recipes are defined in the profile files; each system YAML is self-contained.
 The common retrieval settings are 256-token windows, overlap 32,
 128 candidates, 15 selected windows, local storage, no dynamic top-k and no
 display deduplication. MAB disables turn expansion and keeps fact-consolidation
-units atomic. MEME displays selected evidence chronologically.
+units atomic. Its 10,000,000-character message limit preserves the complete
+main benchmark contexts before adapter chunking. MEME displays selected evidence
+chronologically.
 
 | ID | Reader | Judge / scoring | Execution |
 | --- | --- | --- | --- |
