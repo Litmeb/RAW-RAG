@@ -1,7 +1,7 @@
 # RAW-RAG: Naive RAG for Long-Term LLM Memory
 
-Implementation and experimental code for **"Is Complex Agentic Memory Always
-Needed? Naive RAG Is Stronger Than We Thought"**.
+Implementation and experimental code for **["Is Complex Agentic Memory Always
+Needed? Naive RAG Is Stronger Than We Thought"](https://arxiv.org/abs/2610.30755)**.
 
 **[Introduction](#introduction) | [Framework](#framework) |
 [Results](#evaluation-results) | [Analysis](#what-explains-the-results) |
@@ -271,5 +271,5 @@ python -m pytest tests -q
 
 ## Citation
 
-This repository accompanies **"Is Complex Agentic Memory Always Needed?
-Naive RAG Is Stronger Than We Thought"**.
+This repository accompanies **["Is Complex Agentic Memory Always Needed?
+Naive RAG Is Stronger Than We Thought"](https://arxiv.org/abs/2610.30755)**.
