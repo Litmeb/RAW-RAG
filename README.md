@@ -1,4 +1,4 @@
-# Is Complex Agentic Memory Always Needed? Naive RAG Is Stronger Than We Thought
+# RAW-RAG: Naive RAG for Long-Term LLM Memory
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
@@ -6,11 +6,15 @@
   <a href="https://huggingface.co/papers/2610.30755"><img src="https://img.shields.io/badge/Hugging%20Face-Papers-ffd21e.svg" alt="Hugging Face Papers"></a>
 </p>
 
-This repository provides the implementation and experimental code for **Paper** [Is Complex Agentic Memory Always Needed? Naive RAG Is Stronger Than We Thought](https://arxiv.org/abs/2610.30755)
+Implementation and experimental code for **["Is Complex Agentic Memory Always
+Needed? Naive RAG Is Stronger Than We Thought"](https://arxiv.org/abs/2610.30755)**.
 
----
+**[Introduction](#introduction) | [Framework](#framework) |
+[Results](#evaluation-results) | [Analysis](#what-explains-the-results) |
+[Reproduction](#reproduction) |
+[Citation](#citation)**
 
-## Overview
+## Introduction
 
 Do long-term conversation tasks always require complex agentic memory?
 RAW-RAG revisits a simple alternative: **preserve raw history, retrieve relevant
@@ -45,8 +49,6 @@ evidence, and let the reader reason over it**.
    relations and dependency paths matter. Complete access to a transformed
    memory store does not necessarily recover information preserved in raw history.
 
----
-
 ## Framework
 
 RAW-RAG uses a fixed **build, retrieve, rerank, read** pipeline:
@@ -64,8 +66,6 @@ RAW-RAG uses a fixed **build, retrieve, rerank, read** pipeline:
 Ingestion preserves raw text without LLM-based extraction or summarization.
 Benchmark-specific settings are listed in the
 [paper profiles](scripts/paper/README.md).
-
----
 
 ## Evaluation Results
 
@@ -100,8 +100,6 @@ RAW-RAG takes 50.32 seconds for add-to-ready and 255.59 seconds for search,
 totaling 305.91 seconds. Answer generation and evaluation are excluded.
 The figure also reports cumulative sequential ingestion on BEAM-1M.
 
----
-
 ## What Explains the Results?
 
 - **Retrieval quality matters.** Removing reranking reduces MemoryAgentBench
@@ -118,9 +116,7 @@ The figure also reports cumulative sequential ingestion on BEAM-1M.
   cascades, and invalidation require linked events and dependencies, not
   merely isolated mentions of answer values.
 
----
-
-## Repository Structure
+## Repository Guide
 
 | Location | Contents |
 | --- | --- |
@@ -129,8 +125,6 @@ The figure also reports cumulative sequential ingestion on BEAM-1M.
 | [`methods/EverCore/tests`](methods/EverCore/tests) | Regression and integration tests |
 | [`scripts`](scripts) | Setup helpers for selected external baselines |
 | [`assets`](assets) | Paper figures used in this README |
-
----
 
 ## Reproduction
 
@@ -223,8 +217,6 @@ and add these PersonaMem-v2 files under `methods/EverCore/evaluation/data`:
 pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group All -Tag paper-all
 ```
 
----
-
 ## Custom Runs
 
 For custom runs, set the dataset, models, and prompts under
@@ -247,8 +239,6 @@ python -m evaluation.cli --dataset memoryagentbench --system rag_raw_summary
 python -m evaluation.cli --dataset memoryagentbench --system rag_graph_expanded_raw
 ```
 
----
-
 ## Timing Experiment
 
 For sequential BEAM-1M ingestion timing, prepare the conversations, configure
@@ -262,8 +252,6 @@ python -m evaluation.speed_sequence_cli `
   --data-dir ..\..\beam\BEAM-1M
 ```
 
----
-
 ## Diagnostic Experiments
 
 The diagnostic entry points include
@@ -272,21 +260,17 @@ for 5k evidence controls and
 [`run_meme_complete_store_uncapped.py`](methods/EverCore/evaluation/scripts/run_meme_complete_store_uncapped.py)
 for complete-store uncapped experiments.
 
----
-
 ## License
 
 The code in this repository is released under the [MIT License](LICENSE).
 Third-party dependencies and datasets retain their respective licenses.
-
----
 
 ## Citation
 
 If you find this work helpful for your research, please consider citing:
 
 ```bibtex
-@inproceedings{bao2026complexagenticmemory,
+@misc{bao2026complexagenticmemory,
   title         = {Is Complex Agentic Memory Always Needed? Naive {RAG} Is Stronger Than We Thought},
   author        = {Bao, Zhengye and Zhang, Shengtao and Zhang, Haokai and Lou, Shiqi and Wen, Muning and Luo, Minnan},
   year          = {2026},
