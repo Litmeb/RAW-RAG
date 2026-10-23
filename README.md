@@ -1,20 +1,12 @@
+# RAW-RAG: Is Complex Agentic Memory Always Needed? Naive RAG Is Stronger Than We Thought
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![arXiv](https://img.shields.io/badge/arXiv-2610.30755-b31b1b.svg)](https://arxiv.org/abs/2610.30755)
 [![Hugging Face Papers](https://img.shields.io/badge/Hugging%20Face-Papers-ffd21e.svg)](https://huggingface.co/papers/2610.30755)
 
-# RAW-RAG: Is Complex Agentic Memory Always Needed? Naive RAG Is Stronger Than We Thought
+This repository provides the implementation and experimental code for **RAW-RAG**.
 
-This repository provides the implementation and experimental code for the paper:
-
-> **Is Complex Agentic Memory Always Needed? Naive RAG Is Stronger Than We Thought**<br>
-> Zhengye Bao, Shengtao Zhang, Haokai Zhang, Shiqi Lou, Muning Wen, Minnan Luo<br>
-> arXiv preprint, 2026
-
-**[Overview](#overview) | [Framework](#framework) |
-[Results](#evaluation-results) | [Analysis](#what-explains-the-results) |
-[Repository Structure](#repository-structure) |
-[Reproduction](#reproduction) |
-[Citation](#citation)**
+**Paper**: [https://arxiv.org/abs/2610.30755](https://arxiv.org/abs/2610.30755)
 
 ---
 
@@ -279,23 +271,6 @@ The diagnostic entry points include
 for 5k evidence controls and
 [`run_meme_complete_store_uncapped.py`](methods/EverCore/evaluation/scripts/run_meme_complete_store_uncapped.py)
 for complete-store uncapped experiments.
-
----
-
-## Tests
-
-From `methods/EverCore`:
-
-```powershell
-python -m pip install -r requirements-test.txt
-python -m pytest tests/test_rawrag_regressions.py tests/test_diagnostic_source_manifests.py tests/test_cli_fast_path_filter.py tests/test_longmemeval_official_judge.py tests/test_build_rag_5k_intervention_runs.py tests/test_search_stage_checkpoint.py tests/test_rag_graph_expanded_raw.py tests/test_meme_complete_store_uncapped.py -q
-```
-
-The full suite includes external-baseline integration tests:
-
-```powershell
-python -m pytest tests -q
-```
 
 ---
 
