@@ -1,14 +1,24 @@
-# RAW-RAG: Naive RAG for Long-Term LLM Memory
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![arXiv](https://img.shields.io/badge/arXiv-2610.30755-b31b1b.svg)](https://arxiv.org/abs/2610.30755)
+[![Hugging Face Papers](https://img.shields.io/badge/Hugging%20Face-Papers-ffd21e.svg)](https://huggingface.co/papers/2610.30755)
 
-Implementation and experimental code for **["Is Complex Agentic Memory Always
-Needed? Naive RAG Is Stronger Than We Thought"](https://arxiv.org/abs/2610.30755)**.
+# RAW-RAG: Is Complex Agentic Memory Always Needed? Naive RAG Is Stronger Than We Thought
 
-**[Introduction](#introduction) | [Framework](#framework) |
+This repository provides the implementation and experimental code for the paper:
+
+> **Is Complex Agentic Memory Always Needed? Naive RAG Is Stronger Than We Thought**<br>
+> Zhengye Bao, Shengtao Zhang, Haokai Zhang, Shiqi Lou, Muning Wen, Minnan Luo<br>
+> arXiv preprint, 2026
+
+**[Overview](#overview) | [Framework](#framework) |
 [Results](#evaluation-results) | [Analysis](#what-explains-the-results) |
+[Repository Structure](#repository-structure) |
 [Reproduction](#reproduction) |
 [Citation](#citation)**
 
-## Introduction
+---
+
+## Overview
 
 Do long-term conversation tasks always require complex agentic memory?
 RAW-RAG revisits a simple alternative: **preserve raw history, retrieve relevant
@@ -43,6 +53,8 @@ evidence, and let the reader reason over it**.
    relations and dependency paths matter. Complete access to a transformed
    memory store does not necessarily recover information preserved in raw history.
 
+---
+
 ## Framework
 
 RAW-RAG uses a fixed **build, retrieve, rerank, read** pipeline:
@@ -60,6 +72,8 @@ RAW-RAG uses a fixed **build, retrieve, rerank, read** pipeline:
 Ingestion preserves raw text without LLM-based extraction or summarization.
 Benchmark-specific settings are listed in the
 [paper profiles](scripts/paper/README.md).
+
+---
 
 ## Evaluation Results
 
@@ -94,6 +108,8 @@ RAW-RAG takes 50.32 seconds for add-to-ready and 255.59 seconds for search,
 totaling 305.91 seconds. Answer generation and evaluation are excluded.
 The figure also reports cumulative sequential ingestion on BEAM-1M.
 
+---
+
 ## What Explains the Results?
 
 - **Retrieval quality matters.** Removing reranking reduces MemoryAgentBench
@@ -110,7 +126,9 @@ The figure also reports cumulative sequential ingestion on BEAM-1M.
   cascades, and invalidation require linked events and dependencies, not
   merely isolated mentions of answer values.
 
-## Repository Guide
+---
+
+## Repository Structure
 
 | Location | Contents |
 | --- | --- |
@@ -119,6 +137,8 @@ The figure also reports cumulative sequential ingestion on BEAM-1M.
 | [`methods/EverCore/tests`](methods/EverCore/tests) | Regression and integration tests |
 | [`scripts`](scripts) | Setup helpers for selected external baselines |
 | [`assets`](assets) | Paper figures used in this README |
+
+---
 
 ## Reproduction
 
@@ -211,6 +231,8 @@ and add these PersonaMem-v2 files under `methods/EverCore/evaluation/data`:
 pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group All -Tag paper-all
 ```
 
+---
+
 ## Custom Runs
 
 For custom runs, set the dataset, models, and prompts under
@@ -233,6 +255,8 @@ python -m evaluation.cli --dataset memoryagentbench --system rag_raw_summary
 python -m evaluation.cli --dataset memoryagentbench --system rag_graph_expanded_raw
 ```
 
+---
+
 ## Timing Experiment
 
 For sequential BEAM-1M ingestion timing, prepare the conversations, configure
@@ -246,6 +270,8 @@ python -m evaluation.speed_sequence_cli `
   --data-dir ..\..\beam\BEAM-1M
 ```
 
+---
+
 ## Diagnostic Experiments
 
 The diagnostic entry points include
@@ -253,6 +279,8 @@ The diagnostic entry points include
 for 5k evidence controls and
 [`run_meme_complete_store_uncapped.py`](methods/EverCore/evaluation/scripts/run_meme_complete_store_uncapped.py)
 for complete-store uncapped experiments.
+
+---
 
 ## Tests
 
@@ -269,7 +297,28 @@ The full suite includes external-baseline integration tests:
 python -m pytest tests -q
 ```
 
+---
+
+## License
+
+The code in this repository is released under the [MIT License](LICENSE).
+Third-party dependencies and datasets retain their respective licenses.
+
+---
+
 ## Citation
 
-This repository accompanies **["Is Complex Agentic Memory Always Needed?
-Naive RAG Is Stronger Than We Thought"](https://arxiv.org/abs/2610.30755)**.
+If you find this work helpful for your research, please consider citing:
+
+```bibtex
+@inproceedings{bao2026complexagenticmemory,
+  title         = {Is Complex Agentic Memory Always Needed? Naive {RAG} Is Stronger Than We Thought},
+  author        = {Bao, Zhengye and Zhang, Shengtao and Zhang, Haokai and Lou, Shiqi and Wen, Muning and Luo, Minnan},
+  year          = {2026},
+  note          = {arXiv preprint},
+  eprint        = {2610.30755},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.AI},
+  url           = {https://arxiv.org/abs/2610.30755}
+}
+```
