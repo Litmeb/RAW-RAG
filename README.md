@@ -1,12 +1,12 @@
-# RAW-RAG: Is Complex Agentic Memory Always Needed? Naive RAG Is Stronger Than We Thought
+# Is Complex Agentic Memory Always Needed? Naive RAG Is Stronger Than We Thought
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![arXiv](https://img.shields.io/badge/arXiv-2610.30755-b31b1b.svg)](https://arxiv.org/abs/2610.30755)
-[![Hugging Face Papers](https://img.shields.io/badge/Hugging%20Face-Papers-ffd21e.svg)](https://huggingface.co/papers/2610.30755)
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://arxiv.org/abs/2610.30755"><img src="https://img.shields.io/badge/arXiv-2610.30755-b31b1b.svg" alt="arXiv"></a>
+  <a href="https://huggingface.co/papers/2610.30755"><img src="https://img.shields.io/badge/Hugging%20Face-Papers-ffd21e.svg" alt="Hugging Face Papers"></a>
+</p>
 
-This repository provides the implementation and experimental code for **RAW-RAG**.
-
-**Paper**: [https://arxiv.org/abs/2610.30755](https://arxiv.org/abs/2610.30755)
+This repository provides the implementation and experimental code for **Paper** [Is Complex Agentic Memory Always Needed? Naive RAG Is Stronger Than We Thought](https://arxiv.org/abs/2610.30755)
 
 ---
 
