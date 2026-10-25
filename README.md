@@ -12,6 +12,7 @@ Needed? Naive RAG Is Stronger Than We Thought"](https://arxiv.org/abs/2610.30755
 **[Introduction](#introduction) | [Framework](#framework) |
 [Results](#evaluation-results) | [Analysis](#what-explains-the-results) |
 [Reproduction](#reproduction) |
+[Community Reproduction](#community-reproduction) |
 [Citation](#citation)**
 
 ## Introduction
@@ -216,6 +217,19 @@ and add these PersonaMem-v2 files under `methods/EverCore/evaluation/data`:
 ```powershell
 pwsh -NoProfile -File scripts/paper/run_rawrag.ps1 -Group All -Tag paper-all
 ```
+
+## Community Reproduction
+
+We thank the GoodMem team for sharing an independent, GoodMem-based reproduction
+of our LoCoMo evaluation, including code and per-question results, in
+their [goodmem-memory-benchmarks repository](https://github.com/PAIR-Systems-Inc/goodmem-memory-benchmarks).
+Using the embedding model, reranker, and retrieval depths specified in Table 10
+of our paper, they report the following scores:
+
+| Reader | RAW-RAG, Table 10 | GoodMem reproduction |
+| --- | ---: | ---: |
+| GPT-4o-mini | 89.07 | 88.68 |
+| GPT-4.1-mini | 93.70 | 93.48 |
 
 ## Custom Runs
 
